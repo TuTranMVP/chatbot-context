@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 BotQA - Smart Chatbot Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 10px;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            height: 90vh;
+            min-height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            display: flex;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+            border-right: 1px solid #dee2e6;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.05);
+        }
+
+        .sidebar h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .template-btn {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left;
+            border-left: 4px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .template-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .template-btn:hover::before {
+            left: 100%;
+        }
+
+        .template-btn:hover {
+            border-color: #007bff;
+            border-left-color: #007bff;
+            transform: translateX(5px) translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 123, 255, 0.2);
+        }
+
+        .template-btn:active {
+            transform: translateX(5px) translateY(0px);
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+        }
+
+        .template-btn.analysis {
+            border-left-color: #17a2b8;
+        }
+
+        .template-btn.steps {
+            border-left-color: #28a745;
+        }
+
+        .template-btn.summary {
+            border-left-color: #ffc107;
+        }
+
+        .template-btn.qa {
+            border-left-color: #6f42c1;
+        }
+
+        .controls {
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .control-group input,
+        .control-group select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 8px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .action-btn:active::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-clear {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-save {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-export {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-btn:active {
+            transform: translateY(0px);
+        }
+
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chat-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: headerGlow 6s ease-in-out infinite;
+        }
+
+        @keyframes headerGlow {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(180deg);
+            }
+        }
+
+        .chat-header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+            font-weight: 600;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 16px 20px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.user .message-content::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -8px;
+            width: 0;
+            height: 0;
+            border: 8px solid transparent;
+            border-bottom-color: #0056b3;
+            border-right: none;
+            border-bottom-right-radius: 0;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 6px;
+        }
+
+        .message.bot .message-content::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: -8px;
+            width: 0;
+            height: 0;
+            border: 8px solid transparent;
+            border-bottom-color: white;
+            border-left: none;
+            border-bottom-left-radius: 0;
+        }
+
+        .message.template .message-content {
+            background: #e7f3ff;
+            color: #0066cc;
+            font-style: italic;
+            font-size: 14px;
+            max-width: 50%;
+        }
+
+        .message.error .message-content {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.system .message-content {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+            text-align: center;
+            max-width: 80%;
+            margin: 0 auto;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            font-size: 14px;
+            resize: none;
+            min-height: 55px;
+            max-height: 120px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            height: 100%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 90px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .send-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s;
+        }
+
+        .send-btn:active::before {
+            width: 200px;
+            height: 200px;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+        }
+
+        .send-btn:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .send-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: #28a745;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 25px;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status.thinking {
+            background: #ffc107;
+            color: #333;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        }
+
+        .status.error {
+            background: #dc3545;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .status:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .typing-indicator {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .typing-indicator .message-content {
+            background: white;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+        }
+
+        .typing-dots {
+            display: inline-block;
+        }
+
+        .typing-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #007bff;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .container {
+                max-width: 100%;
+                height: 95vh;
+            }
+
+            .sidebar {
+                width: 260px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 180px;
+                overflow-y: auto;
+                padding: 15px;
+                border-right: none;
+                border-bottom: 1px solid #dee2e6;
+            }
+
+            .template-btn {
+                padding: 8px;
+                margin-bottom: 8px;
+            }
+
+            .controls {
+                padding-top: 15px;
+            }
+
+            .main-chat {
+                height: calc(100vh - 180px);
+            }
+
+            .chat-header {
+                padding: 20px 15px;
+            }
+
+            .chat-header h1 {
+                font-size: 24px;
+            }
+
+            .message-content {
+                max-width: 85%;
+                padding: 12px 16px;
+            }
+
+            .chat-input-area {
+                padding: 15px;
+                gap: 8px;
+            }
+
+            .input-field {
+                min-height: 45px;
+                padding: 12px;
+            }
+
+            .send-btn {
+                height: 45px;
+                padding: 12px 20px;
+                min-width: 70px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                max-height: 150px;
+                padding: 10px;
+            }
+
+            .template-btn {
+                padding: 6px;
+                font-size: 12px;
+            }
+
+            .chat-header {
+                padding: 15px 10px;
+            }
+
+            .chat-header h1 {
+                font-size: 20px;
+            }
+
+            .chat-messages {
+                padding: 15px 10px;
+            }
+
+            .message-content {
+                max-width: 90%;
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+
+            .chat-input-area {
+                padding: 10px;
+            }
+        }
+
+        /* Scrollbar Styling */
+        .chat-messages::-webkit-scrollbar,
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track,
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb,
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover,
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Loading animation improvement */
+        .typing-dots span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #007bff;
+            margin: 0 2px;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        /* Enhanced focus states */
+        .template-btn:focus,
+        .action-btn:focus,
+        .send-btn:focus {
+            outline: 2px solid #007bff;
+            outline-offset: 2px;
+        }
+
+        /* Smooth transitions for all interactive elements */
+        * {
+            transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h3>📋 Templates</h3>
+            <div class="template-btn analysis" data-template="analysis" role="button" tabindex="0"
+                aria-label="Sử dụng template phân tích">
+                <div style="font-weight: bold;">📊 Phân tích</div>
+                <div style="font-size: 11px; color: #6c757d; margin-top: 3px;">
+                    "phân tích", "đánh giá", "nhận xét"
+                </div>
+            </div>
+            <div class="template-btn steps" data-template="steps" role="button" tabindex="0"
+                aria-label="Sử dụng template hướng dẫn">
+                <div style="font-weight: bold;">🚀 Hướng dẫn</div>
+                <div style="font-size: 11px; color: #6c757d; margin-top: 3px;">
+                    "bước", "hướng dẫn", "cách làm"
+                </div>
+            </div>
+            <div class="template-btn summary" data-template="summary" role="button" tabindex="0"
+                aria-label="Sử dụng template tóm tắt">
+                <div style="font-weight: bold;">📝 Tóm tắt</div>
+                <div style="font-size: 11px; color: #6c757d; margin-top: 3px;">
+                    "tóm tắt", "tổng kết"
+                </div>
+            </div>
+            <div class="template-btn qa" data-template="qa" role="button" tabindex="0"
+                aria-label="Sử dụng template Q&A">
+                <div style="font-weight: bold;">❓ Q&A</div>
+                <div style="font-size: 11px; color: #6c757d; margin-top: 3px;">
+                    Câu hỏi thông thường
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="temperature">🌡️ Temperature (Độ sáng tạo)</label>
+                    <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.3"
+                        aria-describedby="temp-value">
+                    <small id="temp-value">0.3</small>
+                </div>
+                <div class="control-group">
+                    <label for="max-tokens">📝 Max Tokens</label>
+                    <input type="number" id="max-tokens" min="100" max="2000" value="800" aria-label="Số token tối đa">
+                </div>
+                <button class="action-btn btn-clear" onclick="clearChat()" aria-label="Xóa toàn bộ chat">🗑️ Xóa
+                    Chat</button>
+                <button class="action-btn btn-save" onclick="saveChat()" aria-label="Lưu chat vào clipboard">💾 Lưu
+                    Chat</button>
+                <button class="action-btn btn-export" onclick="exportChat()" aria-label="Xuất chat dưới dạng JSON">📋
+                    Xuất JSON</button>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-chat">
+            <div class="chat-header">
+                <h1>🤖 BotQA Smart Chatbot</h1>
+                <p>AI Assistant với Template System - Web Interface</p>
+            </div>
+
+            <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Tin nhắn chat">
+                <div class="message system">
+                    <div class="message-content">
+                        🎉 <strong>Chào mừng bạn đến với BotQA!</strong><br><br>
+                        💡 <strong>Bot sẽ tự động phát hiện và áp dụng template phù hợp:</strong><br>
+                        • Thử: "Phân tích tình hình thị trường"<br>
+                        • Thử: "Hướng dẫn cài đặt Python"<br>
+                        • Thử: "Tóm tắt cuộc họp hôm nay"<br>
+                        • Hoặc đặt câu hỏi bất kỳ!<br><br>
+                        🎨 <strong>Click vào template bên trái để xem ví dụ</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typing-indicator">
+                <div class="message bot">
+                    <div class="message-content">
+                        🤖 Bot đang suy nghĩ
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <div class="input-group">
+                    <textarea id="message-input" class="input-field" placeholder="Nhập câu hỏi của bạn tại đây..."
+                        onkeydown="handleKeyPress(event)" aria-label="Nhập tin nhắn" rows="2"></textarea>
+                </div>
+                <button id="send-btn" class="send-btn" onclick="sendMessage()" aria-label="Gửi tin nhắn">
+                    📤 Gửi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="status">✅ Sẵn sàng</div>
+
+    <script>
+        let isThinking = false;
+        let templates = {};
+
+        // Load templates on page load
+        fetch('/api/templates')
+            .then(response => response.json())
+            .then(data => {
+                templates = data;
+            })
+            .catch(error => {
+                console.error('Error loading templates:', error);
+            });
+
+        // Template button click handlers
+        document.querySelectorAll('.template-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                handleTemplateClick(this);
+            });
+
+            // Add keyboard support
+            btn.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleTemplateClick(this);
+                }
+            });
+        });
+
+        function handleTemplateClick(btn) {
+            const templateType = btn.dataset.template;
+            const template = templates[templateType];
+            if (template) {
+                const input = document.getElementById('message-input');
+                input.value = template.example;
+                input.focus();
+
+                // Add visual feedback
+                btn.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    btn.style.transform = '';
+                }, 150);
+            }
+        }
+
+        // Temperature slider
+        document.getElementById('temperature').addEventListener('input', function () {
+            document.getElementById('temp-value').textContent = this.value;
+        });
+
+        // Handle Enter key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Auto-resize textarea
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('message-input');
+            if (textarea) {
+                textarea.style.height = 'auto';
+                textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            }
+        }
+
+        // Ensure typing indicator exists
+        function ensureTypingIndicator() {
+            let indicator = document.getElementById('typing-indicator');
+            if (!indicator) {
+                // Recreate typing indicator if it doesn't exist
+                indicator = document.createElement('div');
+                indicator.id = 'typing-indicator';
+                indicator.className = 'typing-indicator';
+                indicator.style.display = 'none';
+                indicator.innerHTML = `
+                    <div class="message bot">
+                        <div class="message-content">
+                            🤖 Bot đang suy nghĩ
+                            <div class="typing-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Insert after chat-messages container
+                const messagesContainer = document.getElementById('chat-messages');
+                if (messagesContainer && messagesContainer.parentNode) {
+                    messagesContainer.parentNode.insertBefore(indicator, messagesContainer.nextSibling);
+                }
+            }
+            return indicator;
+        }
+
+        // Add auto-resize listener
+        document.getElementById('message-input').addEventListener('input', autoResizeTextarea);
+
+        // Add message to chat with improved animations
+        function addMessage(content, type = 'user', isHTML = false) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            if (isHTML) {
+                contentDiv.innerHTML = content;
+            } else {
+                contentDiv.textContent = content;
+            }
+
+            messageDiv.appendChild(contentDiv);
+
+            // Add with fade-in animation
+            messageDiv.style.opacity = '0';
+            messageDiv.style.transform = 'translateY(20px)';
+            messagesContainer.appendChild(messageDiv);
+
+            // Trigger animation
+            requestAnimationFrame(() => {
+                messageDiv.style.opacity = '1';
+                messageDiv.style.transform = 'translateY(0)';
+            });
+
+            // Auto scroll to bottom with smooth behavior
+            setTimeout(() => {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+
+        // Show/hide typing indicator with null safety
+        function showTyping(show) {
+            // Ensure typing indicator exists
+            const indicator = ensureTypingIndicator();
+            const messagesContainer = document.getElementById('chat-messages');
+
+            // Safety check for null elements
+            if (!indicator || !messagesContainer) {
+                console.warn('Typing indicator or messages container not found');
+                return;
+            }
+
+            if (show) {
+                indicator.style.display = 'block';
+                // Check if indicator is not already appended to avoid duplication
+                if (!messagesContainer.contains(indicator)) {
+                    messagesContainer.appendChild(indicator);
+                }
+            } else {
+                indicator.style.display = 'none';
+                // Remove indicator from messages container if it exists there
+                if (messagesContainer.contains(indicator)) {
+                    messagesContainer.removeChild(indicator);
+                }
+            }
+
+            // Smooth scroll to bottom
+            setTimeout(() => {
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        }
+
+        // Update status with better animations
+        function updateStatus(message, type = 'ready') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+
+            // Add pulse effect for important status changes
+            if (type === 'error' || type === 'thinking') {
+                status.style.animation = 'pulse 0.5s ease-in-out';
+                setTimeout(() => {
+                    status.style.animation = '';
+                }, 500);
+            }
+        }
+
+        // Add pulse animation to CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Send message with improved error handling and UX
+        async function sendMessage() {
+            if (isThinking) return;
+
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+
+            if (!message) {
+                // Add shake animation to input if empty
+                input.style.animation = 'shake 0.5s ease-in-out';
+                setTimeout(() => {
+                    input.style.animation = '';
+                }, 500);
+                return;
+            }
+
+            const temperature = parseFloat(document.getElementById('temperature').value);
+            const maxTokens = parseInt(document.getElementById('max-tokens').value);
+
+            // Add user message
+            addMessage(`👤 Bạn: ${message}`, 'user');
+            input.value = ''; // Clear input after adding message
+            autoResizeTextarea(); // Reset textarea height
+
+            // Show thinking state
+            isThinking = true;
+            showTyping(true);
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '⏳ Đang gửi...';
+            updateStatus('🤔 Đang suy nghĩ...', 'thinking');
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        temperature: temperature,
+                        max_tokens: maxTokens
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show template being used
+                    addMessage(`🎨 Template: ${data.template}`, 'template');
+
+                    // Show bot response
+                    addMessage(`🤖 Bot: ${data.response}`, 'bot');
+
+                    updateStatus('✅ Sẵn sàng', 'ready');
+                } else {
+                    addMessage(`❌ Lỗi: ${data.error}`, 'error');
+                    updateStatus('❌ Có lỗi xảy ra', 'error');
+                }
+            } catch (error) {
+                addMessage(`❌ Lỗi kết nối: ${error.message}`, 'error');
+                updateStatus('❌ Lỗi kết nối', 'error');
+            } finally {
+                isThinking = false;
+                showTyping(false);
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '📤 Gửi';
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        // Add shake animation
+        const shakeStyle = document.createElement('style');
+        shakeStyle.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-5px); }
+                75% { transform: translateX(5px); }
+            }
+        `;
+        document.head.appendChild(shakeStyle);
+
+        // Clear chat with improved cleanup and recreation
+        async function clearChat() {
+            // Show confirmation dialog
+            if (!confirm('🗑️ Bạn có chắc chắn muốn xóa toàn bộ chat?')) {
+                return;
+            }
+
+            // Hide typing indicator first to prevent errors
+            showTyping(false);
+
+            // Clear chat messages from UI
+            const messagesContainer = document.getElementById('chat-messages');
+            messagesContainer.innerHTML = `
+            <div class="message system">
+                <div class="message-content">
+                🎉 <strong>Chào mừng bạn đến với BotQA!</strong><br><br>
+                💡 <strong>Bot sẽ tự động phát hiện và áp dụng template phù hợp:</strong><br>
+                • Thử: "Phân tích tình hình thị trường"<br>
+                • Thử: "Hướng dẫn cài đặt Python"<br>
+                • Thử: "Tóm tắt cuộc họp hôm nay"<br>
+                • Hoặc đặt câu hỏi bất kỳ!<br><br>
+                🎨 <strong>Click vào template bên trái để xem ví dụ</strong>
+                </div>
+            </div>
+            `;
+
+            // Reset any ongoing processes
+            isThinking = false;
+            const sendBtn = document.getElementById('send-btn');
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '📤 Gửi';
+            }
+
+            // Update status
+            updateStatus('🗑️ Đã xóa chat', 'ready');
+
+            // Focus back to input
+            const messageInput = document.getElementById('message-input');
+            if (messageInput) {
+                messageInput.focus();
+            }
+        }
+
+        // Save chat (copy to clipboard) with better feedback
+        function saveChat() {
+            const messages = document.getElementById('chat-messages').innerText;
+            navigator.clipboard.writeText(messages).then(() => {
+                updateStatus('💾 Đã copy chat vào clipboard!', 'ready');
+                setTimeout(() => {
+                    updateStatus('✅ Sẵn sàng', 'ready');
+                }, 2000);
+            }).catch(() => {
+                updateStatus('❌ Không thể copy chat', 'error');
+                setTimeout(() => {
+                    updateStatus('✅ Sẵn sàng', 'ready');
+                }, 2000);
+            });
+        }
+
+        // Export chat as JSON
+        function exportChat() {
+            window.open('/api/history/export', '_blank');
+        }
+
+        // Focus input on page load
+        window.addEventListener('load', () => {
+            document.getElementById('message-input').focus();
+        });
+    </script>
+</body>
+
+</html>
