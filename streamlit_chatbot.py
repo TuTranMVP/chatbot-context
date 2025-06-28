@@ -21,8 +21,8 @@ try:
         """Initialize and cache OpenAI client"""
         return openai.AzureOpenAI(
             api_version="2024-07-01-preview",
-            azure_endpoint="httpjpe",
-            api_key="sk",
+            azure_endpoint="https://ve/jpe",
+            api_key="sk-NtxA",
         )
     
     client = get_openai_client()
@@ -202,7 +202,6 @@ class MayaChatbot:
     
     def __init__(self):
         self.messages = [{"role": "system", "content": SYSTEM_MESSAGE}]
-        self.faq_sessions = []
     
     def generate_guide_template(self, title: str, category: str, guide_steps: List[str], 
                               difficulty_level: str = "intermediate", prerequisites: Optional[List[str]] = None, 
@@ -217,7 +216,6 @@ class MayaChatbot:
             "guide_steps": guide_steps,
             "estimated_time": estimated_time,
             "tools_required": tools_required or [],
-            "session_id": len(self.faq_sessions) + 1
         }
         return guide_data
     
@@ -254,7 +252,6 @@ class MayaChatbot:
             "locale": locale,
             "generated_data": [],
             "ai_enhanced": bool(recommended_fields) and not bool(fields),
-            "session_id": len(self.faq_sessions) + 1
         }
         
         # Generate data
@@ -652,10 +649,10 @@ class MayaChatbot:
     def process_message(self, user_question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
         """Process user message and return response."""
         try:
-            # Add user question to messages
+            # Add user question to conversation history
             self.messages.append({"role": "user", "content": user_question})
             
-            # Call OpenAI with function calling
+            # Call OpenAI with function calling using full conversation history
             response = client.chat.completions.create(
                 model="GPT-4o-mini",
                 messages=self.messages,
@@ -664,30 +661,47 @@ class MayaChatbot:
                 tool_choice='auto'
             )
             
-            # Add assistant response to history
-            if response.choices[0].message.content:
-                self.messages.append({
-                    "role": "assistant", 
-                    "content": response.choices[0].message.content
-                })
-            
             # Process function call if present
             if response.choices[0].message.tool_calls:
                 function_call = response.choices[0].message.tool_calls[0].function
+                
                 structured_response = self.process_function_call(function_call)
                 
                 if structured_response:
-                    self.faq_sessions.append(structured_response)
                     readable_response = self.format_response(structured_response)
+                    
+                    # Add assistant response to conversation history
+                    self.messages.append({
+                        "role": "assistant", 
+                        "content": readable_response
+                    })
+                    
                     return readable_response, structured_response
             
             # Fallback to regular response
             fallback_response = response.choices[0].message.content or "I couldn't process your request properly."
+            
+            # Add assistant response to conversation history
+            self.messages.append({
+                "role": "assistant", 
+                "content": fallback_response
+            })
+            
             return fallback_response, None
             
         except Exception as e:
             error_msg = f"Sorry, I encountered an error: {str(e)}"
+            # Add error to conversation history
+            self.messages.append({
+                "role": "assistant", 
+                "content": error_msg
+            })
             return error_msg, None
+    
+    def clear_conversation(self):
+        """Clear conversation history but keep system message"""
+        self.messages = [{"role": "system", "content": SYSTEM_MESSAGE}]
+    
 
 # Streamlit UI
 def main():
@@ -751,6 +765,20 @@ def main():
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
     
+    if "pending_message" not in st.session_state:
+        st.session_state.pending_message = None
+    
+    # Process pending message if exists
+    if st.session_state.pending_message:
+        message = st.session_state.pending_message
+        st.session_state.pending_message = None  # Clear it immediately
+        
+        with st.spinner("🤖 Maya is thinking..."):
+            bot_response, structured_data = st.session_state.chatbot.process_message(message)
+        
+        # Add to chat history
+        st.session_state.chat_history.append((message, bot_response, structured_data))
+    
     # Header
     st.markdown('<h1 class="main-header">🤖 Maya Advanced FAQ Chatbot</h1>', unsafe_allow_html=True)
     
@@ -769,15 +797,10 @@ def main():
         - Multiple output formats (JSON, CSV, XML, etc.)
         """)
         
-        st.header("📊 Session Stats")
-        if hasattr(st.session_state.chatbot, 'faq_sessions'):
-            st.metric("Total Interactions", len(st.session_state.chatbot.faq_sessions))
-        st.metric("Messages Exchanged", len(st.session_state.chat_history))
-        
         # Clear chat button
         if st.button("🗑️ Clear Chat History", type="secondary"):
             st.session_state.chat_history = []
-            st.session_state.chatbot = MayaChatbot()
+            st.session_state.chatbot.clear_conversation()
             st.rerun()
     
     # Main chat interface
@@ -804,34 +827,23 @@ def main():
         else:
             st.info("👋 Welcome! Ask me anything about guides, mock data generation, or general questions.")
     
-    # User input with inline send button
-    col_input, col_send = st.columns([4, 1])
-    with col_input:
-        user_input = st.text_input(
-            "Your question:",
-            placeholder="e.g., 'generate mock data for users' or 'how to set up a database'",
-            key="user_input",
-            label_visibility="collapsed"
-        )
-    
-    with col_send:
-        send_button = st.button("📤 Send", type="primary", use_container_width=True)
-    
-    # Process message
-    if send_button and user_input:
-        process_message(user_input)
+    # User input with Enter to send
+    user_input = st.text_input(
+        "Your question:",
+        placeholder="Type your message and press Enter to send...",
+        key="user_input",
+        label_visibility="collapsed",
+        on_change=handle_user_input
+    )
 
-def process_message(message: str):
-    """Process user message and update chat history"""
-    if message.strip():
-        with st.spinner("🤖 Maya is thinking..."):
-            bot_response, structured_data = st.session_state.chatbot.process_message(message)
+def handle_user_input():
+    """Handle user input when Enter is pressed"""
+    if st.session_state.user_input and st.session_state.user_input.strip():
+        message = st.session_state.user_input.strip()
         
-        # Add to chat history
-        st.session_state.chat_history.append((message, bot_response, structured_data))
-        
-        # Clear input and rerun to show new message
-        st.rerun()
+        # Store the message to be processed and clear input
+        st.session_state.pending_message = message
+        st.session_state.user_input = ""
 
 def display_mock_data(mock_data: Dict[str, Any]):
     """Display mock data in a formatted way"""
@@ -846,6 +858,10 @@ def display_mock_data(mock_data: Dict[str, Any]):
     generated_data = mock_data.get('generated_data', [])
     if generated_data:
         output_format = mock_data.get('output_format', 'json').lower()
+        data_type = mock_data.get('data_type', 'data')
+        
+        # Create unique identifier for this data instance
+        unique_id = f"{data_type}_{hash(str(generated_data))}"
         
         if output_format == 'json':
             st.json(generated_data)
@@ -858,8 +874,9 @@ def display_mock_data(mock_data: Dict[str, Any]):
             st.download_button(
                 label="📥 Download CSV",
                 data=csv,
-                file_name=f"{mock_data.get('data_type', 'data')}.csv",
-                mime="text/csv"
+                file_name=f"{data_type}.csv",
+                mime="text/csv",
+                key=f"csv_download_{unique_id}"
             )
         elif output_format == 'table':
             df = pd.DataFrame(generated_data)
@@ -870,23 +887,24 @@ def display_mock_data(mock_data: Dict[str, Any]):
             st.download_button(
                 label="📥 Download as CSV",
                 data=csv,
-                file_name=f"{mock_data.get('data_type', 'data')}_table.csv",
-                mime="text/csv"
+                file_name=f"{data_type}_table.csv",
+                mime="text/csv",
+                key=f"table_download_{unique_id}"
             )
         elif output_format == 'xml':
             # Generate XML format
             xml_content = f'<?xml version="1.0" encoding="UTF-8"?>\n'
-            xml_content += f'<{mock_data.get("data_type", "data")}s>\n'
+            xml_content += f'<{data_type}s>\n'
             
             for item in generated_data:
-                xml_content += f'  <{mock_data.get("data_type", "item")}>\n'
+                xml_content += f'  <{data_type}>\n'
                 for key, value in item.items():
                     # Escape XML special characters
                     escaped_value = str(value).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&apos;')
                     xml_content += f'    <{key}>{escaped_value}</{key}>\n'
-                xml_content += f'  </{mock_data.get("data_type", "item")}>\n'
+                xml_content += f'  </{data_type}>\n'
             
-            xml_content += f'</{mock_data.get("data_type", "data")}s>'
+            xml_content += f'</{data_type}s>'
             
             st.code(xml_content, language='xml')
             
@@ -894,8 +912,9 @@ def display_mock_data(mock_data: Dict[str, Any]):
             st.download_button(
                 label="📥 Download XML",
                 data=xml_content,
-                file_name=f"{mock_data.get('data_type', 'data')}.xml",
-                mime="application/xml"
+                file_name=f"{data_type}.xml",
+                mime="application/xml",
+                key=f"xml_download_{unique_id}"
             )
         else:
             st.code(json.dumps(generated_data, indent=2), language='json')
