@@ -1,0 +1,13 @@
+# Python Dependencies for BotQA Web Interface
+# Framework và Libraries chính
+flask>=2.3.3
+python-dotenv>=1.0.0
+openai>=1.3.0
+httpx>=0.24.0
+
+# Development Dependencies
+ruff>=0.1.0
+
+# Optional: Additional packages for enhanced features
+requests>=2.31.0
+jinja2>=3.1.2
