@@ -7,8 +7,8 @@ try:
 
     client = openai.AzureOpenAI(
         api_version="2024-07-01-preview",
-        azure_endpoint="https://aiportalapi.stu-platform.live/jpe",
-        api_key="sk-ht7c6K5jpVJUsJOdjTNtxA",
+        azure_endpoint="https:.stu-platform.live/jpe",
+        api_key="sk",
     )
 
     # Define function schemas for different template types
