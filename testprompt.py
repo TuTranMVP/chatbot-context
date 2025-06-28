@@ -7,8 +7,8 @@ try:
 
     client = openai.AzureOpenAI(
         api_version="2024-07-01-preview",
-        azure_endpoint="https:/.stu-platform.live/jpe",
-        api_key="sk-",
+        azure_endpoint="https://aiportalapi.stu-platform.live/jpe",
+        api_key="sk-ht7c6K5jpVJUsJOdjTNtxA",
     )
 
     # Define function schemas for different template types
@@ -17,7 +17,7 @@ try:
             "type": "function",
             "function": {
                 "name": "generate_guide_template",
-                "description": "Creates step-by-step instructions and tutorials when users ask 'how to' do something, need setup guides, installation instructions, or want to learn a process. Automatically triggered by questions containing words like: how to, step by step, guide, tutorial, instructions, setup, install, configure, learn how.",
+                "description": "Creates step-by-step instructions and tutorials ONLY when users explicitly ask for procedural help or instructions. Must contain clear action-oriented language like 'how to', 'steps to', 'guide me through', 'tutorial for', 'instructions to', 'walk me through', 'teach me to', 'show me how', 'create a guide', 'make a tutorial'. NEVER use for: reviews, opinions, explanations, 'what is', 'tell me about', 'explain', 'describe', 'compare', 'review of', 'thoughts on', career advice, or general informational questions.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -99,7 +99,7 @@ try:
             "type": "function",
             "function": {
                 "name": "handle_standard_faq",
-                "description": "Handles general questions, provides information, answers FAQs, and gives explanations when users ask about features, policies, definitions, or need general help. Used for all questions that don't involve creating guides or generating data.",
+                "description": "Handles general questions, provides information, answers FAQs, gives explanations, opinions, reviews, definitions, comparisons, and discussions. Use for ALL questions about careers, roles, technologies, concepts, reviews, opinions, descriptions, definitions. Triggered by: 'what is', 'tell me about', 'explain', 'describe', 'compare', 'review of', 'thoughts on', 'opinion about', career questions, informational queries, and any non-procedural questions that don't require step-by-step instructions.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -944,6 +944,7 @@ try:
         """
         try:
             # Add current user question to messages
+            print(f"💬 User question: {user_question}")
             messages.append({"role": "user", "content": user_question})
 
             # Call OpenAI with function calling and full conversation context
