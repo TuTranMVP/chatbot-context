@@ -21,8 +21,8 @@ try:
         """Initialize and cache OpenAI client"""
         return openai.AzureOpenAI(
             api_version="2024-07-01-preview",
-            azure_endpoint="https://aiportalapi.stu-platform.live/jpe",
-            api_key="sk-ht7c6K5jpVJUsJOdjTNtxA",
+            azure_endpoint="httpjpe",
+            api_key="sk",
         )
     
     client = get_openai_client()
