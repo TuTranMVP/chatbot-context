@@ -274,6 +274,7 @@ class MayaChatbot:
         self.voice_messages = [{'role': 'system', 'content': SYSTEM_MESSAGE}]
         self.client = self._get_openai_client()
         self.db_client = chromadb.PersistentClient(path='./chroma_db')
+        self.init_db()
 
     @st.cache_resource
     def _get_openai_client(_self):
@@ -1205,9 +1206,10 @@ class MayaChatbot:
 
         try:
             # Use the original collection query approach
-            result = collection.query(
+            result = self.collection.query(
                 query_texts=[message], n_results=limit or 2
             )
+            print(f"Query result: {result}")
             movie_names = [
                 metadata['title'] for metadata in result['metadatas'][0]
             ]
@@ -1251,7 +1253,8 @@ class MayaChatbot:
                 'message': response.choices[0].message.content,
             }
 
-        except Exception:
+        except Exception as e:
+            print(f"Error during movie recommendation: {e}")
             return {
                 'type': 'movie_error',
                 'message': "Sorry, I couldn't process your movie recommendation request",
@@ -1259,11 +1262,13 @@ class MayaChatbot:
 
     def init_db(self):
         """Initialize the ChromaDB database."""
-        collection = self.db_client.get_or_create_collection(
+        self.collection = self.db_client.get_or_create_collection(
             name='my_movie_collection'
         )
+        print("ChromaDB collection initialized.")
 
-        if collection.count() > 0:
+        existing_data = self.collection.get()
+        if len(existing_data["ids"]) > 0:
             return
 
         with open('dmovies.json', 'r', encoding='utf-8') as f:
@@ -1287,7 +1292,7 @@ class MayaChatbot:
         model = SentenceTransformer('all-MiniLM-L6-v2')
         embeddings = model.encode(descriptions)
 
-        collection.add(
+        self.collection.add(
             documents=f'{descriptions}, name: {titles}',
             embeddings=embeddings,
             ids=[str(i) for i in range(len(descriptions))],
