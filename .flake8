@@ -1,0 +1,6 @@
+[flake8]
+# ✅ Disable Flake8 completely - use Ruff instead
+ignore = E,W,F,C,N
+exclude = *
+max-line-length = 999
+disable-noqa = True

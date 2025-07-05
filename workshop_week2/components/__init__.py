@@ -3,7 +3,7 @@ Maya Chatbot - Voice and Text Interface Components
 
 This package contains modular components for the Maya chatbot:
 - chatbot_core.py: Core chatbot logic and OpenAI integration
-- voice_interface.py: Speech-to-text functionality  
+- voice_interface.py: Speech-to-text functionality
 - tts_interface.py: Text-to-speech functionality
 - ui_components.py: UI rendering components
 
@@ -21,34 +21,34 @@ Troubleshooting:
 """
 
 # Package version
-__version__ = "1.0.0"
+__version__ = '1.0.0'
 
 # Import main components for easy access
 try:
     from .chatbot_core import MayaChatbot
-    from .voice_interface import VoiceInterface, check_microphone_permission
     from .tts_interface import TTSInterface
     from .ui_components import (
-        render_text_mode_ui,
-        render_voice_mode_ui, 
+        render_custom_css,
         render_mode_selector,
         render_sidebar_info,
-        render_custom_css
+        render_text_mode_ui,
+        render_voice_mode_ui,
     )
-    
+    from .voice_interface import VoiceInterface, check_microphone_permission
+
     __all__ = [
         'MayaChatbot',
-        'VoiceInterface', 
+        'VoiceInterface',
         'check_microphone_permission',
         'TTSInterface',
         'render_text_mode_ui',
         'render_voice_mode_ui',
-        'render_mode_selector', 
+        'render_mode_selector',
         'render_sidebar_info',
-        'render_custom_css'
+        'render_custom_css',
     ]
-    
+
 except ImportError as e:
     # Handle import errors gracefully
-    print(f"Warning: Could not import some components: {e}")
+    print(f'Warning: Could not import some components: {e}')
     __all__ = []
