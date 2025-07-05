@@ -12,14 +12,13 @@ try:
     from components.chatbot_core import MayaChatbot
     from components.tts_interface import TTSInterface
     from components.ui_duolingo import (
-        render_duolingo_css,
-        render_duolingo_landing,
-        render_duolingo_chat_mode,
-        render_duolingo_voice_mode,
-        render_duolingo_mode_selector,
-        render_quick_suggestions,
         display_duolingo_data,
         display_duolingo_guide,
+        render_duolingo_chat_mode,
+        render_duolingo_css,
+        render_duolingo_landing,
+        render_duolingo_voice_mode,
+        render_quick_suggestions,
     )
     from components.voice_interface import VoiceInterface
 except ImportError as e:

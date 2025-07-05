@@ -3,7 +3,7 @@ Duolingo-Inspired UI Components for Maya Chatbot
 Modern, playful, button-focused interface
 """
 
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict
 
 import pandas as pd
 import streamlit as st
@@ -41,24 +41,32 @@ def render_duolingo_landing():
 
 def render_duolingo_chat_mode():
     """Render Duolingo-inspired chat interface"""
-    
+
     # Chat history
     if st.session_state.get('chat_history'):
         st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        for user_msg, bot_response, structured_data in st.session_state.chat_history:
+        for (
+            user_msg,
+            bot_response,
+            structured_data,
+        ) in st.session_state.chat_history:
             # User message
-            with st.chat_message("user"):
+            with st.chat_message('user'):
                 st.write(user_msg)
-            
+
             # Bot response
-            with st.chat_message("assistant"):
+            with st.chat_message('assistant'):
                 st.write(bot_response)
-                
+
                 # Display structured data if available
                 if structured_data:
                     if structured_data.get('data_type') == 'guide':
                         display_duolingo_guide(structured_data)
-                    elif structured_data.get('data_type') in ['data', 'user_data', 'product_data']:
+                    elif structured_data.get('data_type') in [
+                        'data',
+                        'user_data',
+                        'product_data',
+                    ]:
                         display_duolingo_data(structured_data)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
@@ -71,34 +79,37 @@ def render_duolingo_chat_mode():
                 <p>Ask me anything or use the buttons below to get started.</p>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
-    
+
     # Text input
-    user_input = st.chat_input("Type your message here...", key="chat_input")
+    user_input = st.chat_input('Type your message here...', key='chat_input')
     if user_input:
         st.session_state['user_input'] = user_input
         st.session_state['suggestion_clicked'] = True
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_duolingo_voice_mode():
     """Render Duolingo-inspired voice interface"""
-    
+
     # Top navigation
     col1, col2, col3 = st.columns([1, 2, 1])
-    
+
     with col1:
-        if st.button("🏠", help="Home", key="home_voice_btn"):
+        if st.button('🏠', help='Home', key='home_voice_btn'):
             st.session_state['current_view'] = 'landing'
             st.rerun()
-    
+
     with col2:
-        st.markdown('<div class="voice-header">🎤 Voice Chat</div>', unsafe_allow_html=True)
-    
+        st.markdown(
+            '<div class="voice-header">🎤 Voice Chat</div>',
+            unsafe_allow_html=True,
+        )
+
     with col3:
-        if st.button("💬", help="Text Mode", key="text_btn"):
+        if st.button('💬', help='Text Mode', key='text_btn'):
             st.session_state['interface_mode'] = 'text'
             st.rerun()
 
@@ -132,20 +143,30 @@ def render_duolingo_voice_mode():
 
     # Voice control buttons
     col1, col2, col3 = st.columns([1, 2, 1])
-    
+
     with col2:
         if st.session_state.get('is_speaking', False):
-            if st.button("🔇 Stop Speaking", key="stop_voice", use_container_width=True):
+            if st.button(
+                '🔇 Stop Speaking', key='stop_voice', use_container_width=True
+            ):
                 # Stop TTS logic here
                 st.session_state['is_speaking'] = False
                 st.rerun()
         elif st.session_state.get('is_recording', False):
-            if st.button("⏹️ Stop Recording", key="stop_recording", use_container_width=True):
+            if st.button(
+                '⏹️ Stop Recording',
+                key='stop_recording',
+                use_container_width=True,
+            ):
                 # Stop recording logic here
                 st.session_state['is_recording'] = False
                 st.rerun()
         else:
-            if st.button("🎤 Start Recording", key="start_recording", use_container_width=True):
+            if st.button(
+                '🎤 Start Recording',
+                key='start_recording',
+                use_container_width=True,
+            ):
                 # Start recording logic here
                 st.session_state['is_recording'] = True
                 st.rerun()
@@ -153,20 +174,28 @@ def render_duolingo_voice_mode():
     # Chat history (same as text mode but with voice indicators)
     if st.session_state.get('chat_history'):
         st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-        for user_msg, bot_response, structured_data in st.session_state.chat_history:
+        for (
+            user_msg,
+            bot_response,
+            structured_data,
+        ) in st.session_state.chat_history:
             # User message with voice indicator
-            with st.chat_message("user"):
-                st.write(f"🎤 {user_msg}")
-            
+            with st.chat_message('user'):
+                st.write(f'🎤 {user_msg}')
+
             # Bot response
-            with st.chat_message("assistant"):
+            with st.chat_message('assistant'):
                 st.write(bot_response)
-                
+
                 # Display structured data if available
                 if structured_data:
                     if structured_data.get('data_type') == 'guide':
                         display_duolingo_guide(structured_data)
-                    elif structured_data.get('data_type') in ['data', 'user_data', 'product_data']:
+                    elif structured_data.get('data_type') in [
+                        'data',
+                        'user_data',
+                        'product_data',
+                    ]:
                         display_duolingo_data(structured_data)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
@@ -179,52 +208,63 @@ def render_duolingo_voice_mode():
                 <p>Click the microphone button to start speaking with Maya.</p>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
 
 def get_voice_status():
     """Get current voice status with appropriate styling"""
     if st.session_state.get('is_recording', False):
-        return {
-            'class': 'listening',
-            'icon': '🔴',
-            'text': 'Listening...'
-        }
+        return {'class': 'listening', 'icon': '🔴', 'text': 'Listening...'}
     elif st.session_state.get('is_processing', False):
-        return {
-            'class': 'processing',
-            'icon': '⚡',
-            'text': 'Processing...'
-        }
+        return {'class': 'processing', 'icon': '⚡', 'text': 'Processing...'}
     elif st.session_state.get('is_speaking', False):
         return {
             'class': 'speaking',
             'icon': '🔊',
-            'text': 'Maya is speaking...'
+            'text': 'Maya is speaking...',
         }
     else:
-        return {
-            'class': 'ready',
-            'icon': '✨',
-            'text': 'Ready to chat!'
-        }
+        return {'class': 'ready', 'icon': '✨', 'text': 'Ready to chat!'}
 
 
 def render_quick_suggestions():
     """Render quick suggestion buttons"""
     st.markdown('<div class="suggestions-section">', unsafe_allow_html=True)
-    st.markdown('<h4 class="suggestions-title">💡 Try asking:</h4>', unsafe_allow_html=True)
-    
+    st.markdown(
+        '<h4 class="suggestions-title">💡 Try asking:</h4>',
+        unsafe_allow_html=True,
+    )
+
     suggestions = [
-        {"icon": "📋", "text": "Create a guide", "query": "Create a step-by-step guide"},
-        {"icon": "👥", "text": "User data", "query": "Generate user data in JSON format"},
-        {"icon": "🛍️", "text": "Product data", "query": "Generate product data for e-commerce"},
-        {"icon": "📈", "text": "Analytics", "query": "Create sample analytics data"},
-        {"icon": "🔧", "text": "Setup guide", "query": "Help me set up a development environment"},
-        {"icon": "💡", "text": "Ideas", "query": "Give me project ideas"},
+        {
+            'icon': '📋',
+            'text': 'Create a guide',
+            'query': 'Create a step-by-step guide',
+        },
+        {
+            'icon': '👥',
+            'text': 'User data',
+            'query': 'Generate user data in JSON format',
+        },
+        {
+            'icon': '🛍️',
+            'text': 'Product data',
+            'query': 'Generate product data for e-commerce',
+        },
+        {
+            'icon': '📈',
+            'text': 'Analytics',
+            'query': 'Create sample analytics data',
+        },
+        {
+            'icon': '🔧',
+            'text': 'Setup guide',
+            'query': 'Help me set up a development environment',
+        },
+        {'icon': '💡', 'text': 'Ideas', 'query': 'Give me project ideas'},
     ]
-    
+
     # Create a 2x3 grid of suggestion buttons
     for i in range(0, len(suggestions), 3):
         cols = st.columns(3)
@@ -233,46 +273,54 @@ def render_quick_suggestions():
                 suggestion = suggestions[i + j]
                 with col:
                     if st.button(
-                        f"{suggestion['icon']} {suggestion['text']}", 
-                        key=f"suggestion_{i+j}",
-                        use_container_width=True
+                        f'{suggestion["icon"]} {suggestion["text"]}',
+                        key=f'suggestion_{i + j}',
+                        use_container_width=True,
                     ):
                         st.session_state['user_input'] = suggestion['query']
                         st.session_state['suggestion_clicked'] = True
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_duolingo_mode_selector():
     """Render Duolingo-style mode selector"""
     st.markdown('<div class="mode-selector-duolingo">', unsafe_allow_html=True)
-    
+
     col1, col2 = st.columns(2)
-    
+
     current_mode = st.session_state.get('interface_mode', 'text')
-    
+
     with col1:
-        text_class = "mode-button active" if current_mode == 'text' else "mode-button"
-        if st.button("💬 Text Chat", key="mode_text", use_container_width=True):
+        text_class = (
+            'mode-button active' if current_mode == 'text' else 'mode-button'
+        )
+        if st.button(
+            '💬 Text Chat', key='mode_text', use_container_width=True
+        ):
             st.session_state['interface_mode'] = 'text'
             st.rerun()
-    
+
     with col2:
-        voice_class = "mode-button active" if current_mode == 'voice' else "mode-button"
-        if st.button("🎤 Voice Chat", key="mode_voice", use_container_width=True):
+        voice_class = (
+            'mode-button active' if current_mode == 'voice' else 'mode-button'
+        )
+        if st.button(
+            '🎤 Voice Chat', key='mode_voice', use_container_width=True
+        ):
             st.session_state['interface_mode'] = 'voice'
             st.rerun()
-    
+
     st.markdown('</div>', unsafe_allow_html=True)
     return current_mode
 
 
 def display_duolingo_data(data: Dict[str, Any]):
     """Display data in Duolingo card style"""
-    data_type = data.get("data_type", "Data")
-    count = data.get("count", 0)
-    format_type = data.get("output_format", "json").upper()
-    
+    data_type = data.get('data_type', 'Data')
+    count = data.get('count', 0)
+    format_type = data.get('output_format', 'json').upper()
+
     st.markdown(
         f"""
         <div class="data-card-duolingo">
@@ -287,9 +335,9 @@ def display_duolingo_data(data: Dict[str, Any]):
         """,
         unsafe_allow_html=True,
     )
-    
+
     if data.get('ai_enhanced'):
-        st.success("🤖 AI Enhanced!")
+        st.success('🤖 AI Enhanced!')
 
     # Show generated data
     generated_data = data.get('generated_data', [])
@@ -297,34 +345,34 @@ def display_duolingo_data(data: Dict[str, Any]):
         if format_type.lower() in ['csv', 'table']:
             df = pd.DataFrame(generated_data)
             st.dataframe(df, use_container_width=True, height=200)
-            
+
             # Download button with Duolingo styling
             csv = df.to_csv(index=False)
             st.download_button(
-                "📥 Download",
+                '📥 Download',
                 data=csv,
                 file_name=f'{data_type.lower()}.csv',
                 mime='text/csv',
                 key=f'download_{hash(str(generated_data))}',
-                use_container_width=True
+                use_container_width=True,
             )
 
 
 def display_duolingo_guide(guide: Dict[str, Any]):
     """Display guide in Duolingo card style"""
-    title = guide.get("title", "Guide")
-    category = guide.get("category", "General")
-    difficulty = guide.get("difficulty_level", "intermediate").title()
-    
+    title = guide.get('title', 'Guide')
+    category = guide.get('category', 'General')
+    difficulty = guide.get('difficulty_level', 'intermediate').title()
+
     # Difficulty color mapping
     difficulty_colors = {
-        "Beginner": "#58cc02",  # Green
-        "Intermediate": "#ff9600",  # Orange
-        "Advanced": "#ff4b4b"  # Red
+        'Beginner': '#58cc02',  # Green
+        'Intermediate': '#ff9600',  # Orange
+        'Advanced': '#ff4b4b',  # Red
     }
-    
-    color = difficulty_colors.get(difficulty, "#ff9600")
-    
+
+    color = difficulty_colors.get(difficulty, '#ff9600')
+
     st.markdown(
         f"""
         <div class="guide-card-duolingo">
@@ -344,14 +392,14 @@ def display_duolingo_guide(guide: Dict[str, Any]):
         """,
         unsafe_allow_html=True,
     )
-    
+
     if guide.get('estimated_time'):
-        st.info(f"⏱️ Estimated time: {guide['estimated_time']}")
+        st.info(f'⏱️ Estimated time: {guide["estimated_time"]}')
 
     # Show steps in an expandable section
     steps = guide.get('guide_steps', [])
     if steps:
-        with st.expander("📋 View Steps", expanded=True):
+        with st.expander('📋 View Steps', expanded=True):
             for i, step in enumerate(steps, 1):
                 st.markdown(
                     f"""
