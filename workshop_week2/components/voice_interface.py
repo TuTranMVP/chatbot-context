@@ -3,6 +3,9 @@ Voice Interface Component for Maya Chatbot
 Handles speech-to-text and microphone functionality with TTS response
 """
 
+import platform
+import re
+import subprocess
 import threading
 import time
 
@@ -11,6 +14,14 @@ import speech_recognition as sr
 import streamlit as st
 import torch
 from transformers import AutoTokenizer, VitsModel
+
+# Cross-platform audio support
+try:
+    import pygame
+
+    PYGAME_AVAILABLE = True
+except ImportError:
+    PYGAME_AVAILABLE = False
 
 
 class VoiceInterface:
@@ -75,7 +86,7 @@ class VoiceInterface:
         """Continuous voice activity detection with automatic transcription"""
         try:
             if self.microphone is None:
-                print("Microphone not initialized")
+                print('Microphone not initialized')
                 return
 
             with self.microphone as source:
@@ -116,7 +127,7 @@ class VoiceInterface:
         self.processing = True
         try:
             # Transcribe the audio
-            text = self.recognizer.recognize_google(audio) # type: ignore
+            text = self.recognizer.recognize_google(audio)  # type: ignore
             if text and len(text.strip()) > 0:
                 user_question = text.strip()
                 # Log what user said
@@ -184,7 +195,6 @@ class VoiceInterface:
     def _clean_text_for_tts(self, text):
         """Clean text for TTS by removing markdown and special characters"""
         # Remove markdown formatting
-        import re
 
         # Remove markdown headers
         text = re.sub(r'^#+\s+', '', text, flags=re.MULTILINE)
@@ -207,16 +217,123 @@ class VoiceInterface:
         return text
 
     def _play_audio(self, audio_file):
-        """Play audio file (placeholder - implement based on your needs)"""
+        """Cross-platform audio playback optimized for macOS"""
         try:
-            # For Windows, you can use winsound
+            system = platform.system()
+            print(f'🔊 Playing audio on {system}...')
+
+            if PYGAME_AVAILABLE:
+                # Use pygame for cross-platform audio (recommended)
+                self._play_with_pygame(audio_file)
+
+            elif system == 'Darwin':  # macOS
+                # Use native macOS audio player
+                self._play_with_macos_native(audio_file)
+
+            elif system == 'Windows':
+                # Use Windows native audio
+                self._play_with_windows_native(audio_file)
+
+            elif system == 'Linux':
+                # Use Linux audio tools
+                self._play_with_linux_native(audio_file)
+
+            else:
+                print(f'⚠️ Audio playback not implemented for {system}')
+                print(f'📁 Audio file saved: {audio_file}')
+
+        except Exception as e:
+            print(f'❌ Audio playback error: {e}')
+            print(f'📁 Audio file saved: {audio_file}')
+
+    def _play_with_pygame(self, audio_file):
+        """Play audio using pygame (cross-platform)"""
+        if not PYGAME_AVAILABLE:
+            raise Exception('Pygame not available')
+
+        try:
+            import pygame  # Import locally to avoid linting issues
+
+            pygame.mixer.init()
+            pygame.mixer.music.load(audio_file)
+            pygame.mixer.music.play()
+
+            # Wait for playback to finish
+            while pygame.mixer.music.get_busy():
+                time.sleep(0.1)
+
+            pygame.mixer.quit()
+            print('✅ Audio played successfully with pygame')
+
+        except Exception as e:
+            print(f'❌ Pygame audio error: {e}')
+            raise
+
+    def _play_with_macos_native(self, audio_file):
+        """Play audio using native macOS tools"""
+        try:
+            # Use afplay command (built into macOS)
+            subprocess.run(['afplay', audio_file], check=True)
+            print('✅ Audio played successfully with afplay (macOS)')
+
+        except subprocess.CalledProcessError as e:
+            print(f'❌ afplay error: {e}')
+            # Fallback to open command
+            try:
+                subprocess.run(['open', audio_file], check=True)
+                print('✅ Audio opened with default app (macOS)')
+            except Exception as e2:
+                print(f'❌ Fallback failed: {e2}')
+                raise
+
+        except FileNotFoundError:
+            print('❌ afplay not found (unusual for macOS)')
+            raise
+
+    def _play_with_windows_native(self, audio_file):
+        """Play audio using Windows native tools"""
+        try:
             import winsound
 
-            winsound.PlaySound(audio_file, winsound.SND_FILENAME)  # type: ignore
+            winsound.PlaySound(audio_file, winsound.SND_FILENAME) # type: ignore
+            print('✅ Audio played successfully with winsound (Windows)')
+
         except ImportError:
-            # For cross-platform, you could use pygame or other libraries
-            print(f'Audio file ready: {audio_file}')
-            print('Note: Audio playback requires additional setup')
+            # Fallback to PowerShell
+            try:
+                ps_command = f'''
+                Add-Type -AssemblyName presentationCore;
+                $mediaPlayer = New-Object system.windows.media.mediaplayer;
+                $mediaPlayer.open([uri]"{audio_file}");
+                $mediaPlayer.Play();
+                Start-Sleep -Seconds 3;
+                '''
+                subprocess.run(
+                    ['powershell', '-Command', ps_command], check=True
+                )
+                print('✅ Audio played with PowerShell (Windows)')
+            except Exception as e:
+                print(f'❌ Windows audio fallback failed: {e}')
+                raise
+
+    def _play_with_linux_native(self, audio_file):
+        """Play audio using Linux audio tools"""
+        audio_players = ['aplay', 'paplay', 'mpg123', 'sox']
+
+        for player in audio_players:
+            try:
+                subprocess.run(
+                    [player, audio_file], check=True, capture_output=True
+                )
+                print(f'✅ Audio played successfully with {player} (Linux)')
+                return
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                continue
+
+        # If no player found
+        print('❌ No Linux audio player found')
+        print('💡 Install one of: aplay, paplay, mpg123, or sox')
+        raise Exception('No audio player available')
 
     def set_chatbot(self, chatbot):
         """Set the chatbot instance for processing voice input"""
