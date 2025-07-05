@@ -1,150 +1,79 @@
 # pyproject.toml
 
+# pyproject.toml - Cấu hình đơn giản cho Maya Chatbot
+# 🎯 Dành cho người mới bắt đầu
+
 [tool.ruff]
-# ✅ Set line-length cho formatter và linter
-line-length = 88  # Tương thích với Black, tránh conflict với VS Code formatter
-# Target Python version - cập nhật theo dự án
+# ✅ Độ dài dòng - Tuân thủ PEP 8 standard
+line-length = 79
+
+# Target Python version  
 target-version = "py311"
-# Include/exclude patterns
-include = ["*.py", "*.pyi", "**/pyproject.toml"]
+
+# Files to check
+include = ["*.py", "*.pyi"]
+
+# Files to ignore
 exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
     ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
+    "__pycache__",
     "build",
-    "dist",
+    "dist", 
+    ".git",
     "node_modules",
-    "venv",
-    "migrations",  # Django migrations
-    "*_pb2.py",    # Protocol buffers
 ]
 
 [tool.ruff.lint]
-# Chọn các bộ quy tắc linter để kích hoạt.
-# E, W: Lỗi và cảnh báo (chuẩn Pyflakes)
-# F: Lỗi logic (chuẩn Flake8)
-# I: Sắp xếp import (chuẩn isort)
-# B: Lỗi bug (flake8-bugbear)
-# C4: Lỗi phức tạp không cần thiết (flake8-comprehensions)
-# A: Cảnh báo về built-in shadowing (flake8-builtins)
-select = ["E", "W", "F", "I", "B", "C4", "A"]
+# 🎯 Quy tắc cơ bản - không quá phức tạp
+select = [
+    "E",   # Lỗi cú pháp (pycodestyle errors)
+    "W",   # Cảnh báo (pycodestyle warnings)  
+    "F",   # Logic errors (pyflakes)
+    "I",   # Import sorting (isort)
+]
 
-# ✅ Ignore E501 để tránh conflict với VS Code Ruff formatter
+# 🚫 Bỏ qua các lỗi không quan trọng
 ignore = [
-    # Formatting conflicts (handled by formatter)
-    "E501",    # Line too long (handled by Ruff formatter)
-    "E203",    # Whitespace before ':' (conflicts with Black)
-
-    # Boolean trap - sometimes necessary
-    "FBT001",  # Boolean positional arg in function definition
-    "FBT002",  # Boolean default value in function definition
-    "FBT003",  # Boolean positional value in function call
-
-    # Print statements (allow for demo purposes)
-    # "T201",    # `print` found - commented out to allow prints
+    "E501",  # Line too long (để formatter tự xử lý)
+    "E203",  # Whitespace before ':' 
 ]
 
-# ✅ Per-file ignores - Áp dụng rules khác nhau cho từng loại file
+# 📁 Rules cho từng loại file
 [tool.ruff.lint.per-file-ignores]
-# Tests can use magic values, print statements, etc.
-"tests/**/*.py" = [
-    "S101",    # asserts allowed in tests
-    "ARG",     # Unused function args -> fixtures nevertheless are functionally relevant
-    "FBT",     # Don't care about booleans as positional arguments in tests
-    "PLR2004", # Magic value used in comparison
-    "S311",    # Standard pseudo-random generators are not suitable for security/cryptographic purposes
-    "T201",    # Print allowed in tests
-]
+# Test files - thoải mái hơn
+"test_*.py" = ["E501", "F401"]
+"*_test.py" = ["E501", "F401"]
 
-# Scripts and CLI tools
-"scripts/**/*.py" = ["T201", "T203"]  # Allow print/pprint
-"cli.py" = ["T201"]
-
-# Django settings
-"settings/**/*.py" = ["F403", "F405"]  # Allow star imports in settings
-
-# Migrations
-"**/migrations/**/*.py" = ["E501", "F401", "F403", "F405"]
+# Demo files - cho phép print
+"demo_*.py" = ["T201", "E501"]
+"example_*.py" = ["T201", "E501"]
 
 [tool.ruff.lint.isort]
-# ✅ Advanced import sorting
+# 📦 Import sorting đơn giản
 combine-as-imports = true
-force-sort-within-sections = true
-force-wrap-aliases = true
-known-local-folder = ["src", "app", "core"]
-# Tự động thêm các thư viện bên thứ ba đã biết
-known-third-party = [
-    # Web frameworks
-    "fastapi", "django", "flask", "starlette",
-    # Data & DB
-    "pydantic", "sqlalchemy", "alembic", "pandas", "numpy",
-    # Async
-    "asyncio", "aiohttp", "httpx",
-    # Testing
-    "pytest", "unittest",
-    # CLI
-    "click", "typer", "argparse",
-    # Utilities
-    "requests", "python-dotenv", "rich"
-]
-section-order = [
-    "future",
-    "standard-library",
-    "third-party",
-    "first-party",
-    "local-folder"
-]
 split-on-trailing-comma = true
 
-[tool.ruff.lint.mccabe]
-# ✅ Complexity threshold - khuyến nghị không quá 10
-max-complexity = 10
-
-[tool.ruff.lint.pylint]
-# ✅ Pylint specific settings
-max-args = 6  # Maximum number of arguments for function / method
-max-branches = 12  # Maximum number of branches for function / method
-max-returns = 6   # Maximum number of return / yield for function / method
-max-statements = 50  # Maximum number of statements in function / method
+# Sắp xếp imports
+known-third-party = [
+    "streamlit",
+    "flask", 
+    "openai",
+    "pandas",
+    "torch",
+    "transformers",
+    "pygame",
+    "requests",
+    "python-dotenv"
+]
 
 [tool.ruff.format]
-# ✅ Formatting rules - compatible với VS Code Ruff extension
-quote-style = "single" # Dùng nháy đơn thay vì nháy kép
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
-docstring-code-format = true  # Format code in docstrings
-docstring-code-line-length = 72  # Shorter lines in docstring code
+# ✨ Formatting - đơn giản và nhất quán
+quote-style = "single"        # Dùng nháy đơn
+indent-style = "space"        # Dùng space
+line-ending = "auto"          # Tự động detect
 
-# ✅ Compatibility với các tools khác
-[tool.ruff.lint.flake8-type-checking]
-runtime-evaluated-base-classes = ["pydantic.BaseModel", "sqlalchemy.orm.DeclarativeBase"]
-
-[tool.ruff.lint.flake8-pytest-style]
-fixture-parentheses = false
-mark-parentheses = false
-
-
-[tool.ruff.lint.pyupgrade]
-# ✅ Theo kịp với cú pháp Python hiện đại
-keep-runtime-typing = false  # Remove `from __future__ import annotations` when possible
-
-# 📚 Complete example - Không thiếu gì
-# 🎯 Essential rules only - Không overwhelm
-# 📝 Clear comments - Giải thích mọi thứ
-# 🚀 Ready to use - Copy paste là chạy được
-# 📈 Scalable - Dễ mở rộng sau này
+# 💡 Tips cho người mới:
+# 1. Chạy `ruff check .` để kiểm tra lỗi
+# 2. Chạy `ruff format .` để format code
+# 3. Line length = 79 là chuẩn PEP 8
+# 4. Ignore E501 để tránh conflict với formatter
