@@ -3,3 +3,9 @@ __pycache__/templates_config.cpython-311.pyc
 .env
 .vscode
 mms-tts-eng-local
+workshop_week2/components/__pycache__/chatbot_core.cpython-313.pyc
+workshop_week2/components/__pycache__/ui_components.cpython-313.pyc
+workshop_week2/components/__pycache__/ui_duolingo.cpython-313.pyc
+workshop_week2/components/__pycache__/voice_interface.cpython-313.pyc
+__pycache__
+chroma_db
