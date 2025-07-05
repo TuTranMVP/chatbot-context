@@ -1271,7 +1271,7 @@ class MayaChatbot:
         if len(existing_data["ids"]) > 0:
             return
 
-        with open('dmovies.json', 'r', encoding='utf-8') as f:
+        with open('movies.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
 
         # Nếu chỉ có 1 phim, chuyển thành list
@@ -1293,7 +1293,7 @@ class MayaChatbot:
         embeddings = model.encode(descriptions)
 
         self.collection.add(
-            documents=f'{descriptions}, name: {titles}',
+            documents=descriptions,
             embeddings=embeddings,
             ids=[str(i) for i in range(len(descriptions))],
             metadatas=[
