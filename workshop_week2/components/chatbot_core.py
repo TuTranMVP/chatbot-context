@@ -99,6 +99,36 @@ functions = [
                 "required": ["question", "answer"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "recommend_movies",
+            "description": "Provides movie recommendations based on user preferences. Use when users ask for movie suggestions, recommendations by genre/category, or movies similar to a description they provide. Triggered by phrases like: 'recommend movies', 'suggest films', 'what movies should I watch', 'movies like', 'good [genre] movies', 'films about', 'movie recommendations', 'recommend action movie', 'suggest comedy films'. Can extract genre from natural language.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Movie genre/category (e.g., 'action', 'comedy', 'drama', 'horror', 'sci-fi', 'romance', 'thriller', 'animated'). Extract from user query if mentioned (e.g., 'action movie' -> 'action')."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Full user query or description of what kind of movie they want. Include the complete user request for natural language processing (e.g., 'recommend action movie', 'movies about time travel', 'films with strong female leads')."
+                    },
+                    "similar_movie": {
+                        "type": "string",
+                        "description": "Name of a movie the user wants recommendations similar to. Only include if user mentions a specific movie."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20,
+                        "description": "Maximum number of movie recommendations to return. Only include if user specifies a number (e.g., 'recommend 5 movies', 'give me 3 films'). Default is 5 if not specified."
+                    }
+                }
+            }
+        }
     }
 ]
 
@@ -134,6 +164,47 @@ If unsure or if the question falls outside the FAQ scope, politely let the user 
 You can say: "I'm not able to answer that, but you can reach out to our support team for further help."
 Always close the conversation with an offer to help with anything else.
 """
+
+VOICE_SYSTEM_MESSAGE = """
+You are Maya, a helpful and intelligent virtual assistant that can assist users with various tasks.
+"""
+
+voice_functions = [
+    {
+        "type": "function",
+        "function": {
+            "name": "recommend_movies",
+            "description": "Provides movie recommendations based on user preferences. Use when users ask for movie suggestions, recommendations by genre/category, or movies similar to a description they provide. Triggered by phrases like: 'recommend movies', 'suggest films', 'what movies should I watch', 'movies like', 'good [genre] movies', 'films about', 'movie recommendations', 'recommend action movie', 'suggest comedy films'. Can extract genre from natural language.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "description": "Movie genre/category (e.g., 'action', 'comedy', 'drama', 'horror', 'sci-fi', 'romance', 'thriller', 'animated'). Extract from user query if mentioned (e.g., 'action movie' -> 'action')."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Full user query or description of what kind of movie they want. Include the complete user request for natural language processing (e.g., 'recommend action movie', 'movies about time travel', 'films with strong female leads')."
+                    },
+                    "similar_movie": {
+                        "type": "string",
+                        "description": "Name of a movie the user wants recommendations similar to. Only include if user mentions a specific movie."
+                    },
+                    "combined_request": {
+                        "type": "string",
+                        "description": "If user provides multiple criteria, combine them in format 'description:{description}, category:{category}, similar:{similar_movie}'. Only include if multiple criteria are provided."
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20,
+                        "description": "Maximum number of movie recommendations to return. Only include if user specifies a number (e.g., 'recommend 5 movies', 'give me 3 films'). Default is 5 if not specified."
+                    }
+                }
+            }
+        }
+    }
+]
 
 class MayaChatbot:
     """Main chatbot class with all core functionality"""
@@ -523,6 +594,8 @@ class MayaChatbot:
                 return self.generate_mock_data(**arguments)
             elif function_name == "handle_standard_faq":
                 return self.handle_standard_faq(**arguments)
+            elif function_name == "recommend_movies":
+                return self.recommend_movies(**arguments)
             else:
                 return None
                 
@@ -538,6 +611,10 @@ class MayaChatbot:
             return self._format_guide_response(response_data)
         elif response_type == 'mock_data':
             return self._format_mock_data_response(response_data)
+        elif response_type == 'movie_simple':
+            return response_data.get('message', '')
+        elif response_type == 'movie_error':
+            return self._format_movie_error_response(response_data)
         else:
             return self._format_standard_response(response_data)
     
@@ -595,6 +672,10 @@ class MayaChatbot:
         
         return response
     
+    def _format_movie_error_response(self, error_data: Dict[str, Any]) -> str:
+        """Format movie recommendation error response."""
+        return f"❌ **Movie Recommendation Error**\n\n{error_data.get('message', 'An error occurred')}\n\nPlease try asking like:\n• 'Recommend some action movies'\n• 'Movies about time travel'\n• 'Movies similar to Inception'"
+
     def process_message(self, user_question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
         """Process user message and return response."""
         try:
@@ -653,12 +734,12 @@ class MayaChatbot:
             # Add user question to voice conversation history
             self.voice_messages.append({"role": "user", "content": user_question})
             
-            # Call OpenAI with function calling using voice conversation history
+            # Call OpenAI with function calling using voice conversation history and voice_functions
             response = self.client.chat.completions.create(
                 model="GPT-4o-mini",
                 messages=self.voice_messages,
                 temperature=0.3,
-                tools=functions,
+                tools=voice_functions,  # Use voice_functions instead of functions
                 tool_choice='auto'
             )
             
@@ -706,3 +787,65 @@ class MayaChatbot:
     def clear_voice_conversation(self):
         """Clear voice conversation history but keep system message"""
         self.voice_messages = [{"role": "system", "content": SYSTEM_MESSAGE}]
+
+    def recommend_movies(self, category: Optional[str] = None, description: Optional[str] = None, 
+                        similar_movie: Optional[str] = None, combined_request: Optional[str] = None, 
+                        limit: Optional[int] = None) -> Dict[str, Any]:
+        """Generate movie recommendations based on user preferences."""
+        
+        # Build parameter summary string
+        param_values = []
+        
+        if category:
+            param_values.append(f"category={category}")
+        if description:
+            param_values.append(f"description={description}")
+        if similar_movie:
+            param_values.append(f"similar_movie={similar_movie}")
+        if param_values:
+            parameter_string = ", ".join(param_values)
+            message = f"recommend movie with parameter values: {parameter_string}"
+        else:
+            message = "recommend movie"
+        
+        try:
+            # Use the original collection query approach
+            result = collection.query(query_texts=[message], n_results=limit or 2)
+            movie_names = [metadata["name"] for metadata in result["metadatas"][0]]
+            
+            # Create the basic recommendation text
+            recommendation_text = "List of recommended movies are: " + ", ".join(movie_names) + "."
+            
+            # Check if we have any movie recommendations
+            if not movie_names or len(movie_names) == 0 or recommendation_text == "List of recommended movies are: .":
+                return {
+                    "type": "movie_simple",
+                    "message": "We do not have any movie that matches your expectations. Please try with different preferences or categories."
+                }
+            
+            # Voice transformation prompt
+            voice_prompt = f"""            
+            Original text: "{recommendation_text}"
+            1. Make it sound like a friendly voice assistant
+            2. Use a conversational tone
+            3. add detail why you should like this movie
+            Transform this into speech that sounds natural when spoken by a voice assistant
+            """
+            print(recommendation_text)
+            response = self.client.chat.completions.create(
+                    model="GPT-4o-mini",
+                    messages=[{"role": "user", "content": voice_prompt}],
+                    max_tokens=800,
+                    temperature=0.7
+                )
+                
+            return {
+                "type": "movie_simple",
+                "message": response.choices[0].message.content
+            }
+            
+        except Exception as e:
+            return {
+                "type": "movie_error",
+                "message": f"Sorry, I couldn't process your movie recommendation request"
+            }
