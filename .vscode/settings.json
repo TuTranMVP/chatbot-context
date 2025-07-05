@@ -9,6 +9,6 @@
             "source.organizeImports.ruff": "explicit"
         }
     },
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "commentTranslate.targetLanguage": "en"
 }
