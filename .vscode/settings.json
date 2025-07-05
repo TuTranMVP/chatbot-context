@@ -1,0 +1,14 @@
+{
+    // Your other settings...
+    "[python]": {
+        // Đặt Ruff làm formatter mặc định
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        // Kích hoạt tự động sửa lỗi và sắp xếp import khi lưu file
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        }
+    },
+    "editor.formatOnSave": true,
+    "commentTranslate.targetLanguage": "en"
+}

@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "charliermarsh.ruff",
+        "formulahendry.auto-rename-tag"
+    ]
+}
