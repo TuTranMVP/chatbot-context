@@ -1119,7 +1119,6 @@ class MayaChatbot:
 
     def init_db(self):
         self.init_movie_db()
-        self.init_chat_history_db()
 
     def init_movie_db(self):
         """Initialize the ChromaDB database."""
@@ -1193,13 +1192,6 @@ class MayaChatbot:
                 for i in range(len(descriptions))
             ],
         )
-    
-    def init_chat_history_db(self):
-        """Initialize the ChromaDB database."""
-        self.chat_collection = self.db_client.get_or_create_collection(
-            name='my_chat_history_collection'
-        )
-        print("ChromaDB chat history collection initialized.")
 
     def filter_results_by_threshold(self, query_result: Dict[str, Any], 
                                   similarity_threshold: Optional[float] = None) -> List[Dict[str, Any]]:
