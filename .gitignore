@@ -10,3 +10,4 @@ workshop_week2/components/__pycache__/voice_interface.cpython-313.pyc
 __pycache__
 chroma_db
 venv/
+workshop_week2/.venv/

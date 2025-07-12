@@ -25,3 +25,5 @@ ruff>=0.1.0
 # Optional: Additional packages for enhanced features
 requests>=2.31.0
 jinja2>=3.1.2
+chromadb>=0.4.0
+sentence-transformers>=2.2.0

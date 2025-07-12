@@ -2,6 +2,22 @@
 echo Starting Maya Chatbot...
 echo.
 
+echo Checking virtual environment...
+if not exist ".venv" (
+    echo Error: Virtual environment not found!
+    echo Please run setup.bat first to create the virtual environment.
+    pause
+    exit /b 1
+)
+
+echo Activating virtual environment...
+call .venv\Scripts\activate.bat
+if errorlevel 1 (
+    echo Error: Failed to activate virtual environment
+    pause
+    exit /b 1
+)
+
 echo Checking if we're in the correct directory...
 if not exist "streamlit_chatbot.py" (
     echo Error: streamlit_chatbot.py not found!
