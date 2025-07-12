@@ -100,6 +100,7 @@ class MayaChatbot:
         self.db_client = chromadb.PersistentClient(path='./chroma_db')
         self.similarity_threshold = 0.7  # Default distance threshold (0.3 similarity)
         self.init_db()
+        self.additional_info_client = chromadb.PersistentClient(path='./vector_chroma_db')
 
     @st.cache_resource
     def _get_openai_client(_self):
@@ -890,13 +891,15 @@ class MayaChatbot:
                     print(f"  [{i+1}] {msg}")
 
             if filenames:
-                additional_context_result = self.additional_collection.query(
+                self.additional_info_collection = self.additional_info_client.get_collection("additional_info_collection")
+                additional_context_result = self.additional_info_collection.query(
                     query_texts=[user_question], 
-                    n_results=10,  # Get more results to filter by threshold
+                    n_results=5,
                     where={"filename": {"$in": filenames}}
                 )
                 
                 # Filter results using the dedicated function
+                print(f"Raw additional context result: {additional_context_result}")
                 filtered_results = self.filter_results_by_threshold(additional_context_result)
                 
                 # Add context to messages if we have filtered results

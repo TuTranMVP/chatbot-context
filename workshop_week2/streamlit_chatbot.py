@@ -83,8 +83,14 @@ def main():
         st.session_state.pending_message = None  # Clear it immediately
 
         with st.spinner('🤖 Maya is thinking...'):
+            # Get list of uploaded filenames for context
+            filenames = []
+            if hasattr(st.session_state, 'uploaded_files') and st.session_state.uploaded_files:
+                filenames = [file_info['name'] for file_info in st.session_state.uploaded_files]
+            
+            print(f"files: {filenames}")
             bot_response, structured_data = (
-                st.session_state.chatbot.process_message(message)
+                st.session_state.chatbot.process_message(message, filenames)
             )
 
         # Add to chat history

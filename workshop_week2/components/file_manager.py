@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import streamlit as st
+from .vector_text_processor import VectorTextProcessor
 
 
 class FileManager:
@@ -17,6 +18,19 @@ class FileManager:
     def __init__(self, upload_dir: str = "uploaded_files"):
         self.upload_dir = upload_dir
         self.ensure_upload_directory()
+        
+        # Initialize vector processor for ChromaDB integration
+        try:
+            self.vector_processor = VectorTextProcessor(
+                db_path="./vector_chroma_db",
+                embedding_model="all-MiniLM-L6-v2",
+                enable_caching=True
+            )
+            self.vector_processing_enabled = True
+        except Exception as e:
+            st.warning(f"Vector processing disabled: {str(e)}")
+            self.vector_processor = None
+            self.vector_processing_enabled = False
         
     def ensure_upload_directory(self):
         """Ensure upload directory exists"""
@@ -35,6 +49,31 @@ class FileManager:
             # Save file
             with open(file_path, "wb") as f:
                 f.write(uploaded_file.getvalue())
+            
+            # Process and store file in ChromaDB using vector processor
+            vector_chunk_ids = None
+            vector_processing_success = False
+            
+            if self.vector_processing_enabled and self.vector_processor:
+                try:
+                    # Check if file type is supported by vector processor
+                    if file_extension.lower() in ['.pdf', '.txt', '.md', '.markdown']:
+                        vector_chunk_ids = self.vector_processor.process_and_store_file(
+                            file_path=file_path,
+                            use_chunking=True
+                        )
+                        vector_processing_success = vector_chunk_ids is not None
+                        
+                        if vector_processing_success:
+                            st.success(f"✅ File processed and stored in vector database: {len(vector_chunk_ids)} chunks")
+                        else:
+                            st.warning("⚠️ File saved but vector processing failed")
+                    else:
+                        st.info(f"ℹ️ File type {file_extension} not supported for vector processing")
+                        
+                except Exception as e:
+                    st.warning(f"⚠️ Vector processing failed: {str(e)}")
+                    vector_processing_success = False
                 
             # Create file info
             file_info = {
@@ -75,13 +114,26 @@ class FileManager:
             return f"Error reading file: {str(e)}"
             
     def delete_file(self, file_info: Dict) -> bool:
-        """Delete uploaded file"""
+        """Delete uploaded file and remove from vector database"""
         try:
             if os.path.exists(file_info["path"]):
+                # Remove the physical file
                 os.remove(file_info["path"])
+                
+                # Remove from vector database if vector processing is enabled
+                if self.vector_processing_enabled:
+                    try:
+                        filename = file_info.get("name", os.path.basename(file_info["path"]))
+                        removed_count = self.vector_processor.remove_by_filename(filename)
+                        print(f"Removed {removed_count} chunks for file '{filename}' from vector database")
+                    except Exception as e:
+                        print(f"Warning: Failed to remove file from vector database: {str(e)}")
+                        # Don't fail the deletion if vector removal fails
+                
                 return True
             return False
-        except Exception:
+        except Exception as e:
+            print(f"Error deleting file: {str(e)}")
             return False
             
     def search_files(self, query: str, files: List[Dict]) -> List[Dict]:

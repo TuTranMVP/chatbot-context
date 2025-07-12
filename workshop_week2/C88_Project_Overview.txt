@@ -1,0 +1,18 @@
+
+C88: An Internal Software Development Initiative by FPT Corporation
+
+C88 is a flagship internal software development project spearheaded by FPT Corporation, one of Vietnam’s leading technology conglomerates. This initiative is designed to modernize and centralize enterprise operations across various business units within FPT. The goal of C88 is to create a robust, scalable, and secure digital backbone that empowers internal teams to work smarter and more efficiently.
+
+At its core, C88 is built using a microservices architecture, allowing different services to operate independently while ensuring seamless integration through standardized APIs. The frontend of the application is developed using React.js, offering a fast, responsive, and user-friendly interface. The backend is powered by Node.js and Golang, chosen for their performance and scalability. For data storage and analytics, C88 utilizes PostgreSQL and Elasticsearch, integrated with real-time dashboards built on Grafana and Kibana.
+
+C88 includes several key modules:
+- **Task & Project Management**: To track progress, assign tasks, and monitor deadlines across departments.
+- **Human Resource System**: Managing employee records, leaves, KPIs, and onboarding processes.
+- **Document Workflow Automation**: Streamlining approvals, notifications, and digital signatures.
+- **Reporting & Business Intelligence**: Enabling real-time data-driven decision-making through custom dashboards and analytics tools.
+
+Security is a cornerstone of the C88 platform, incorporating OAuth2 for authentication, role-based access control, and regular security audits.
+
+Beyond its technical merits, C88 is a cultural transformation project. It encourages agile practices across FPT teams, integrates DevOps for continuous delivery, and supports FPT’s vision of becoming a digitally-driven enterprise. The project also serves as a live demo environment for potential clients, showcasing FPT Software’s engineering expertise in building enterprise-grade solutions.
+
+As of today, C88 has been rolled out to several internal departments and is continuously evolving based on user feedback and strategic direction from FPT leadership.

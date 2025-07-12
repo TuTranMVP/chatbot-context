@@ -173,16 +173,8 @@ class VectorTextProcessor:
         """Khởi tạo ChromaDB với error handling"""
         try:
             self.client = chromadb.PersistentClient(path=self.db_path)
-           
-            try:
-                self.collection = self.client.get_collection("vector_documents")
-                logger.info("📊 Connected to existing collection")
-            except:
-                self.collection = self.client.create_collection(
-                    name="vector_documents",
-                    metadata={"description": "Optimized vector text storage"}
-                )
-                logger.info("📊 Created new collection")
+            # Use the helper method for better error handling
+            self.get_or_create_collection("additional_info_collection")
                
         except Exception as e:
             logger.error(f"Failed to initialize ChromaDB: {e}")
@@ -388,7 +380,9 @@ class VectorTextProcessor:
             "processing_time": round(processing_time, 3),
             "processed_at": time.time()
         }
-       
+
+        print(f"metadata {metadata}")
+
         logger.info(f"Processed {file_path.name}: {len(content)} chars in {processing_time:.2f}s")
        
         return {
@@ -550,3 +544,60 @@ class VectorTextProcessor:
             "chunk_size": self.DEFAULT_CHUNK_SIZE,
             "embedding_dimension": self.EMBEDDING_DIMENSION
         }
+    
+    def get_or_create_collection(self, collection_name: str = None) -> None:
+        """Get or create a ChromaDB collection with proper error handling"""
+        if collection_name is None:
+            collection_name = "additional_info_collection"
+            
+        try:
+            # Try to get existing collection
+            self.collection = self.client.get_collection(collection_name)
+            logger.info(f"📊 Connected to existing collection: {collection_name}")
+        except Exception:
+            try:
+                # Collection doesn't exist, create it
+                self.collection = self.client.create_collection(
+                    name=collection_name,
+                    metadata={"description": "Optimized vector text storage"}
+                )
+                logger.info(f"📊 Created new collection: {collection_name}")
+            except Exception as e:
+                logger.error(f"Failed to create collection {collection_name}: {e}")
+                raise
+
+    def remove_by_filename(self, filename: str) -> bool:
+        """Remove all documents/chunks from ChromaDB based on filename"""
+        try:
+            # Query all documents with the specified filename
+            results = self.collection.get(
+                where={"filename": filename},
+                include=['ids', 'metadatas']
+            )
+            
+            if not results['ids']:
+                logger.warning(f"No documents found for filename: {filename}")
+                return False
+            
+            # Delete all matching documents
+            self.collection.delete(ids=results['ids'])
+            
+            deleted_count = len(results['ids'])
+            logger.info(f"✅ Removed {deleted_count} documents/chunks for filename: {filename}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to remove documents for filename {filename}: {e}")
+            return False
+    
+    def remove_by_filenames(self, filenames: List[str]) -> Dict[str, bool]:
+        """Remove documents from ChromaDB for multiple filenames"""
+        results = {}
+        
+        for filename in filenames:
+            results[filename] = self.remove_by_filename(filename)
+        
+        successful_removals = sum(1 for success in results.values() if success)
+        logger.info(f"Removal summary: {successful_removals}/{len(filenames)} files successfully removed")
+        
+        return results
