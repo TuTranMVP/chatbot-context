@@ -894,8 +894,7 @@ class MayaChatbot:
                 self.additional_info_collection = self.additional_info_client.get_collection("additional_info_collection")
                 additional_context_result = self.additional_info_collection.query(
                     query_texts=[user_question], 
-                    n_results=5,
-                    where={"filename": {"$in": filenames}}
+                    n_results=5
                 )
                 
                 # Filter results using the dedicated function
