@@ -6,154 +6,16 @@ Contains the main chatbot class and processing functions
 import json
 import random
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import chromadb
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 import openai
 import streamlit as st
 from sentence_transformers import SentenceTransformer
 
-# Define function schemas for different template types
-functions = [
-    {
-        'type': 'function',
-        'function': {
-            'name': 'generate_guide_template',
-            'description': "Creates step-by-step instructions and tutorials ONLY when users explicitly ask for procedural help or instructions. Must contain clear action-oriented language like 'how to', 'steps to', 'guide me through', 'tutorial for', 'instructions to', 'walk me through', 'teach me to', 'show me how', 'create a guide', 'make a tutorial'. NEVER use for: reviews, opinions, explanations, 'what is', 'tell me about', 'explain', 'describe', 'compare', 'review of', 'thoughts on', career advice, or general informational questions.",
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'title': {
-                        'type': 'string',
-                        'description': 'Title of the guide',
-                    },
-                    'category': {
-                        'type': 'string',
-                        'description': 'Category of the guide',
-                    },
-                    'difficulty_level': {
-                        'type': 'string',
-                        'enum': ['beginner', 'intermediate', 'advanced'],
-                    },
-                    'prerequisites': {
-                        'type': 'array',
-                        'items': {'type': 'string'},
-                    },
-                    'guide_steps': {
-                        'type': 'array',
-                        'items': {'type': 'string'},
-                    },
-                    'estimated_time': {
-                        'type': 'string',
-                        'description': 'Estimated time to complete',
-                    },
-                    'tools_required': {
-                        'type': 'array',
-                        'items': {'type': 'string'},
-                    },
-                },
-                'required': ['title', 'category', 'guide_steps'],
-            },
-        },
-    },
-    {
-        'type': 'function',
-        'function': {
-            'name': 'generate_mock_data',
-            'description': 'Generates sample, test, or mock data when users request data examples, want to create fake data, need sample datasets, or ask for data generation. Automatically triggered by questions containing words like: mock data, sample data, generate data, test data, fake data, dummy data, create data, data examples, sample users, example products. Only include optional parameters if the user specifically requests them.',
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'data_type': {
-                        'type': 'string',
-                        'description': "Type of data to generate (e.g., 'user', 'product', 'order', 'employee', 'custom'). Extract this from the user's request context.",
-                    },
-                    'output_format': {
-                        'type': 'string',
-                        'enum': ['json', 'csv', 'xml', 'sql', 'yaml', 'table'],
-                        'description': 'Output format for the mock data. Only include if user specifically requests a format, otherwise omit to use default (json).',
-                    },
-                    'count': {
-                        'type': 'integer',
-                        'minimum': 1,
-                        'maximum': 100,
-                        'description': 'Number of mock data entries to generate. Only include if user specifies a number, otherwise omit to use default (5).',
-                    },
-                    'locale': {
-                        'type': 'string',
-                        'description': "Locale for data generation (e.g., 'en-US', 'vi-VN'). Only include if user mentions a specific locale or language preference.",
-                    },
-                    'fields': {
-                        'type': 'array',
-                        'items': {'type': 'string'},
-                        'description': "Specific field names to include in the generated data (e.g., ['username', 'email']). Only include if user explicitly lists specific fields they want, otherwise omit to get AI-recommended fields.",
-                    },
-                },
-                'required': ['data_type'],
-            },
-        },
-    },
-    {
-        'type': 'function',
-        'function': {
-            'name': 'handle_standard_faq',
-            'description': "Handles general questions, provides information, answers FAQs, gives explanations, opinions, reviews, definitions, comparisons, and discussions. Use for ALL questions about careers, roles, technologies, concepts, reviews, opinions, descriptions, definitions. Triggered by: 'what is', 'tell me about', 'explain', 'describe', 'compare', 'review of', 'thoughts on', 'opinion about', career questions, informational queries, and any non-procedural questions that don't require step-by-step instructions.",
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'question': {
-                        'type': 'string',
-                        'description': "The user's question",
-                    },
-                    'category': {
-                        'type': 'string',
-                        'description': 'Category of the question',
-                    },
-                    'answer': {
-                        'type': 'string',
-                        'description': 'The main answer to the question',
-                    },
-                    'related_topics': {
-                        'type': 'array',
-                        'items': {'type': 'string'},
-                        'description': 'Related topics or questions',
-                    },
-                },
-                'required': ['question', 'answer'],
-            },
-        },
-    },
-    {
-        'type': 'function',
-        'function': {
-            'name': 'recommend_movies',
-            'description': "Provides movie recommendations based on user preferences. Use when users ask for movie suggestions, recommendations by genre/category, or movies similar to a description they provide. Triggered by phrases like: 'recommend movies', 'suggest films', 'what movies should I watch', 'movies like', 'good [genre] movies', 'films about', 'movie recommendations', 'recommend action movie', 'suggest comedy films'. Can extract genre from natural language.",
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'category': {
-                        'type': 'string',
-                        'description': "Movie genre/category (e.g., 'action', 'comedy', 'drama', 'horror', 'sci-fi', 'romance', 'thriller', 'animated'). Extract from user query if mentioned (e.g., 'action movie' -> 'action').",
-                    },
-                    'description': {
-                        'type': 'string',
-                        'description': "Full user query or description of what kind of movie they want. Include the complete user request for natural language processing (e.g., 'recommend action movie', 'movies about time travel', 'films with strong female leads').",
-                    },
-                    'similar_movie': {
-                        'type': 'string',
-                        'description': 'Name of a movie the user wants recommendations similar to. Only include if user mentions a specific movie.',
-                    },
-                    'limit': {
-                        'type': 'integer',
-                        'minimum': 1,
-                        'maximum': 20,
-                        'description': "Maximum number of movie recommendations to return. Only include if user specifies a number (e.g., 'recommend 5 movies', 'give me 3 films'). Default is 5 if not specified.",
-                    },
-                },
-            },
-        },
-    },
-]
+# Import function schemas from constants file
+from .function_constants import functions, voice_functions
 
 # System message
 SYSTEM_MESSAGE = """
@@ -228,44 +90,6 @@ Always end responses with a friendly offer to help with anything else.
 Speak as if you're having a natural conversation with the user.
 """
 
-voice_functions = [
-    {
-        'type': 'function',
-        'function': {
-            'name': 'recommend_movies',
-            'description': "Provides movie recommendations based on user preferences. Use when users ask for movie suggestions, recommendations by genre/category, or movies similar to a description they provide. Triggered by phrases like: 'recommend movies', 'suggest films', 'what movies should I watch', 'movies like', 'good [genre] movies', 'films about', 'movie recommendations', 'recommend action movie', 'suggest comedy films'. Can extract genre from natural language.",
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'category': {
-                        'type': 'string',
-                        'description': "Movie genre/category (e.g., 'action', 'comedy', 'drama', 'horror', 'sci-fi', 'romance', 'thriller', 'animated'). Extract from user query if mentioned (e.g., 'action movie' -> 'action').",
-                    },
-                    'description': {
-                        'type': 'string',
-                        'description': "Full user query or description of what kind of movie they want. Include the complete user request for natural language processing (e.g., 'recommend action movie', 'movies about time travel', 'films with strong female leads').",
-                    },
-                    'similar_movie': {
-                        'type': 'string',
-                        'description': 'Name of a movie the user wants recommendations similar to. Only include if user mentions a specific movie.',
-                    },
-                    'combined_request': {
-                        'type': 'string',
-                        'description': "If user provides multiple criteria, combine them in format 'description:{description}, category:{category}, similar:{similar_movie}'. Only include if multiple criteria are provided.",
-                    },
-                    'limit': {
-                        'type': 'integer',
-                        'minimum': 1,
-                        'maximum': 20,
-                        'description': "Maximum number of movie recommendations to return. Only include if user specifies a number (e.g., 'recommend 5 movies', 'give me 3 films'). Default is 5 if not specified.",
-                    },
-                },
-            },
-        },
-    }
-]
-
-
 class MayaChatbot:
     """Main chatbot class with all core functionality"""
 
@@ -274,6 +98,7 @@ class MayaChatbot:
         self.voice_messages = [{'role': 'system', 'content': SYSTEM_MESSAGE}]
         self.client = self._get_openai_client()
         self.db_client = chromadb.PersistentClient(path='./chroma_db')
+        self.similarity_threshold = 0.7  # Default distance threshold (0.3 similarity)
         self.init_db()
 
     @st.cache_resource
@@ -1054,10 +879,37 @@ class MayaChatbot:
         return f"❌ **Movie Recommendation Error**\n\n{error_data.get('message', 'An error occurred')}\n\nPlease try asking like:\n• 'Recommend some action movies'\n• 'Movies about time travel'\n• 'Movies similar to Inception'"
 
     def process_message(
-        self, user_question: str
+        self, user_question: str, filenames: Optional[List[str]] = None
     ) -> Tuple[str, Optional[Dict[str, Any]]]:
         """Process user message and return response."""
         try:
+            # Log the additional messages if provided
+            if filenames:
+                print(f"Log messages: {filenames}")
+                for i, msg in enumerate(filenames):
+                    print(f"  [{i+1}] {msg}")
+
+            if filenames:
+                additional_context_result = self.additional_collection.query(
+                    query_texts=[user_question], 
+                    n_results=10,  # Get more results to filter by threshold
+                    where={"filename": {"$in": filenames}}
+                )
+                
+                # Filter results using the dedicated function
+                filtered_results = self.filter_results_by_threshold(additional_context_result)
+                
+                # Add context to messages if we have filtered results
+                if filtered_results:
+                    history_context = "\n".join([
+                        f"- {result['document']}" for result in filtered_results
+                    ])
+                    context_message = {
+                        "role": "system", 
+                        "content": f"additional preference info for user question:\n{history_context}"
+                    }
+                    self.messages.append(context_message)
+
             # Add user question to conversation history
             self.messages.append({'role': 'user', 'content': user_question})
 
@@ -1205,13 +1057,18 @@ class MayaChatbot:
             message = 'recommend movie'
 
         try:
-            # Use the original collection query approach
-            result = self.collection.query(
-                query_texts=[message], n_results=limit or 2
+            # Use query_texts since we have an embedding function configured
+            query_result = self.collection.query(
+                query_texts=[message], 
+                n_results=limit or 2,
+                include=['metadatas', 'documents', 'distances', 'embeddings']
             )
-            print(f"Query result: {result}")
+            print(f"Raw query result: {query_result}")
+
+            filtered_results = self.filter_results_by_threshold(query_result, 1.3)
+            
             movie_names = [
-                metadata['title'] for metadata in result['metadatas'][0]
+                result['metadata']['title'] for result in filtered_results
             ]
 
             # Create the basic recommendation text
@@ -1261,11 +1118,33 @@ class MayaChatbot:
             }
 
     def init_db(self):
+        self.init_movie_db()
+        self.init_chat_history_db()
+
+    def init_movie_db(self):
         """Initialize the ChromaDB database."""
-        self.collection = self.db_client.get_or_create_collection(
-            name='my_movie_collection'
+        # Create OpenAI embedding function for Azure
+        openai_ef = OpenAIEmbeddingFunction(
+            api_key="sk-8YouTg_4fia-c-LA0yeEXQ",
+            api_base="https://aiportalapi.stu-platform.live/jpe",
+            api_type="azure",
+            api_version="2023-05-15",
+            model_name="text-embedding-3-small",
+            deployment_id="text-embedding-3-small"
         )
-        print("ChromaDB collection initialized.")
+        
+        # Delete collection if it exists before creating
+        try:
+            self.db_client.delete_collection(name='test_collection')
+            print("Deleted existing test_collection")
+        except Exception as e:
+            print(f"Collection 'test_collection' doesn't exist or couldn't be deleted: {e}")
+        
+        self.collection = self.db_client.get_or_create_collection(
+            name='test_collection',
+            embedding_function=openai_ef
+        )
+        print("ChromaDB collection initialized with OpenAI embeddings.")
 
         existing_data = self.collection.get()
         if len(existing_data["ids"]) > 0:
@@ -1278,6 +1157,7 @@ class MayaChatbot:
         if isinstance(data, dict):
             data = [data]
 
+        documents = [f"{item['description']} {item['title']} {item['genres']}" for item in data]
         titles = [item['title'] for item in data]
         genres_list = [item['genres'] for item in data]
         descriptions = [item['description'] for item in data]
@@ -1289,12 +1169,11 @@ class MayaChatbot:
             titles
         )  # Gán nhãn Positive, hoặc tự xử lý nếu có trường label
 
-        model = SentenceTransformer('all-MiniLM-L6-v2')
-        embeddings = model.encode(descriptions)
-
+        # No need to generate embeddings manually when using embedding function
+        # ChromaDB will automatically generate embeddings using OpenAI
         self.collection.add(
-            documents=descriptions,
-            embeddings=embeddings,
+            documents=documents,
+            # embeddings parameter is not needed when using embedding_function
             ids=[str(i) for i in range(len(descriptions))],
             metadatas=[
                 {
@@ -1314,3 +1193,47 @@ class MayaChatbot:
                 for i in range(len(descriptions))
             ],
         )
+    
+    def init_chat_history_db(self):
+        """Initialize the ChromaDB database."""
+        self.chat_collection = self.db_client.get_or_create_collection(
+            name='my_chat_history_collection'
+        )
+        print("ChromaDB chat history collection initialized.")
+
+    def filter_results_by_threshold(self, query_result: Dict[str, Any], 
+                                  similarity_threshold: Optional[float] = None) -> List[Dict[str, Any]]:
+        """Filter ChromaDB query results by similarity threshold.
+        
+        Args:
+            query_result: ChromaDB query result containing distances, documents, metadatas
+            similarity_threshold: Custom threshold, or use instance default if None
+            
+        Returns:
+            List of filtered results with similarity scores
+        """
+        if similarity_threshold is None:
+            similarity_threshold = 1
+            
+        filtered_results = []
+        
+        if query_result['distances'] and query_result['distances'][0]:
+            print(f"Query result distances: {query_result['distances'][0]}")
+            for i, distance in enumerate(query_result['distances'][0]):
+                if distance < similarity_threshold:
+                    result_data = {
+                        'document': query_result['documents'][0][i],
+                        'metadata': query_result['metadatas'][0][i],
+                        'distance': distance,
+                        'similarity': 1 - distance  # Convert distance to similarity score
+                    }
+                    
+                    # Include embedding if available
+                    if query_result.get('embeddings') and query_result['embeddings'][0]:
+                        result_data['embedding'] = query_result['embeddings'][0][i]
+                    
+                    filtered_results.append(result_data)
+
+        print(f"Filtered results: {filtered_results}")
+        print(f"Filtered {len(filtered_results)} results above similarity threshold ({1-similarity_threshold:.1f})")
+        return filtered_results
