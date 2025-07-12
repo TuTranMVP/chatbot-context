@@ -10,6 +10,10 @@ import streamlit as st
 # Import modular components
 try:
     from components.chatbot_core import MayaChatbot
+    from components.file_manager import (
+        render_file_manager,
+        render_file_manager_css,
+    )
     from components.tts_interface import TTSInterface
     from components.ui_duolingo import (
         display_duolingo_data,
@@ -41,6 +45,7 @@ def main():
 
     # Apply Duolingo-inspired CSS
     render_duolingo_css()
+    render_file_manager_css()
 
     # Initialize components in session state
     if 'chatbot' not in st.session_state:
@@ -113,7 +118,7 @@ def main():
             st.markdown('<div style="height: 20px;"></div>', unsafe_allow_html=True)
             
             # Feature buttons
-            col_1, col_2, col_3 = st.columns(3)
+            col_1, col_2, col_3, col_4 = st.columns(4)
             with col_1:
                 if st.button('📚 Guides', key='guides', use_container_width=True):
                     st.session_state.current_mode = 'guides'
@@ -123,13 +128,17 @@ def main():
                     st.session_state.current_mode = 'data'
                     st.rerun()
             with col_3:
+                if st.button('📁 Files', key='files', use_container_width=True):
+                    st.session_state.current_mode = 'files'
+                    st.rerun()
+            with col_4:
                 if st.button('❓ Q&A', key='qa', use_container_width=True):
                     st.session_state.current_mode = 'chat'
                     st.rerun()
 
     elif st.session_state.current_mode == 'chat':
         # Top navigation with back to landing
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
         with col1:
             if st.button('🏠 Home', key='home_from_chat'):
                 st.session_state.current_mode = 'landing'
@@ -137,6 +146,10 @@ def main():
         with col2:
             st.markdown('<h2 style="text-align: center; margin: 0;">💬 Chat Mode</h2>', unsafe_allow_html=True)
         with col3:
+            if st.button('📁 Files', key='to_files_from_chat'):
+                st.session_state.current_mode = 'files'
+                st.rerun()
+        with col4:
             if st.button('🎤 Voice', key='to_voice_from_chat'):
                 st.session_state.current_mode = 'voice'
                 st.rerun()
@@ -171,7 +184,7 @@ def main():
                 st.session_state.is_recording = True
 
         # Top navigation with back to landing
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
         with col1:
             if st.button('🏠 Home', key='home_from_voice'):
                 st.session_state.current_mode = 'landing'
@@ -183,6 +196,14 @@ def main():
         with col2:
             st.markdown('<h2 style="text-align: center; margin: 0;">🎤 Voice Mode</h2>', unsafe_allow_html=True)
         with col3:
+            if st.button('📁 Files', key='to_files_from_voice'):
+                st.session_state.current_mode = 'files'
+                if st.session_state.get('voice_mode_active', False):
+                    st.session_state.voice_mode_active = False
+                    st.session_state.voice_interface.stop_recording()
+                    st.session_state.is_recording = False
+                st.rerun()
+        with col4:
             if st.button('💬 Chat', key='to_chat_from_voice'):
                 st.session_state.current_mode = 'chat'
                 if st.session_state.get('voice_mode_active', False):
@@ -221,7 +242,7 @@ def main():
 
     elif st.session_state.current_mode == 'data':
         # Top navigation with back to landing
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
         with col1:
             if st.button('🏠 Home', key='home_from_data'):
                 st.session_state.current_mode = 'landing'
@@ -229,6 +250,10 @@ def main():
         with col2:
             st.markdown('<h2 style="text-align: center; margin: 0;">📊 Data Generation</h2>', unsafe_allow_html=True)
         with col3:
+            if st.button('📁 Files', key='to_files_from_data'):
+                st.session_state.current_mode = 'files'
+                st.rerun()
+        with col4:
             if st.button('💬 Chat', key='to_chat_from_data'):
                 st.session_state.current_mode = 'chat'
                 st.rerun()
@@ -248,7 +273,7 @@ def main():
 
     elif st.session_state.current_mode == 'guides':
         # Top navigation with back to landing
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
         with col1:
             if st.button('🏠 Home', key='home_from_guides'):
                 st.session_state.current_mode = 'landing'
@@ -256,6 +281,10 @@ def main():
         with col2:
             st.markdown('<h2 style="text-align: center; margin: 0;">📚 Guides</h2>', unsafe_allow_html=True)
         with col3:
+            if st.button('📁 Files', key='to_files_from_guides'):
+                st.session_state.current_mode = 'files'
+                st.rerun()
+        with col4:
             if st.button('💬 Chat', key='to_chat_from_guides'):
                 st.session_state.current_mode = 'chat'
                 st.rerun()
@@ -275,6 +304,40 @@ def main():
             ]
         }
         display_duolingo_guide(sample_guide)
+
+    elif st.session_state.current_mode == 'files':
+        # Top navigation with back to landing
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col1:
+            if st.button('🏠 Home', key='home_from_files'):
+                st.session_state.current_mode = 'landing'
+                st.rerun()
+        with col2:
+            st.markdown('<h2 style="text-align: center; margin: 0;">📁 File Manager</h2>', unsafe_allow_html=True)
+        with col3:
+            if st.button('💬 Chat', key='to_chat_from_files'):
+                st.session_state.current_mode = 'chat'
+                st.rerun()
+        
+        # Render file manager interface
+        render_file_manager()
+        
+        # Instructions
+        st.markdown(
+            """
+            <div style="padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                <h4 style="color: #58cc02; margin-top: 0;">📋 How to use:</h4>
+                <ul style="margin-bottom: 0;">
+                    <li>📤 Upload .txt or .md files using the upload section</li>
+                    <li>🔍 Search through your files by name or content</li>
+                    <li>👁️ Preview file contents before using</li>
+                    <li>💬 Click "Use in Chat" to send file content to Maya for analysis</li>
+                    <li>🗑️ Delete individual files or clear all files</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     # Add footer to all pages except landing
     if st.session_state.current_mode != 'landing':

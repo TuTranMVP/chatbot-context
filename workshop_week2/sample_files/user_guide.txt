@@ -1,0 +1,37 @@
+Hướng dẫn sử dụng Maya AI Assistant
+
+## Bước 1: Khởi động ứng dụng
+- Mở terminal và chạy lệnh: streamlit run streamlit_chatbot.py
+- Truy cập vào địa chỉ: http://localhost:8501
+
+## Bước 2: Chọn chế độ tương tác
+### Chế độ Chat (💬):
+- Nhập câu hỏi vào ô text
+- Nhấn Enter để gửi
+- Maya sẽ trả lời ngay lập tức
+
+### Chế độ Voice (🎤):
+- Nhấn nút để bắt đầu ghi âm
+- Nói câu hỏi của bạn
+- Maya sẽ trả lời bằng giọng nói
+
+## Bước 3: Quản lý file
+### Upload file:
+- Chọn file .txt hoặc .md
+- File sẽ được lưu trữ an toàn
+- Có thể upload nhiều file cùng lúc
+
+### Tìm kiếm file:
+- Sử dụng thanh tìm kiếm
+- Tìm theo tên file hoặc nội dung
+- Kết quả hiển thị ngay lập tức
+
+### Sử dụng file với AI:
+- Nhấn "Preview" để xem nội dung
+- Nhấn "Use in Chat" để gửi cho Maya
+- Maya sẽ phân tích và trả lời
+
+## Lưu ý:
+- Chỉ hỗ trợ file .txt và .md
+- Kích thước file tối đa: 10MB
+- Nội dung file phải là văn bản thuần túy

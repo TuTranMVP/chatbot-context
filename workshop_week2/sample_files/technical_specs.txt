@@ -1,0 +1,51 @@
+Công nghệ và Kỹ thuật sử dụng trong Maya AI
+
+## Backend Technologies:
+- Python 3.8+
+- Streamlit framework
+- OpenAI API integration
+- ChromaDB for vector storage
+- Speech recognition libraries
+
+## Frontend Components:
+- Streamlit UI components
+- CSS styling (Duolingo-inspired)
+- JavaScript for interactive features
+- Responsive design
+
+## AI & ML:
+- Large Language Models (LLMs)
+- Natural Language Processing
+- Speech-to-Text conversion
+- Text-to-Speech synthesis
+- Vector embeddings for semantic search
+
+## File Management:
+- File upload and storage
+- Content indexing and search
+- Preview functionality
+- Secure file handling
+
+## Voice Features:
+- Real-time voice recording
+- Audio processing
+- Voice activity detection
+- Multi-language support
+
+## Database:
+- ChromaDB for document storage
+- Vector similarity search
+- Metadata management
+- Efficient retrieval
+
+## Security:
+- Safe file handling
+- Input validation
+- Error handling
+- Data privacy protection
+
+## Performance:
+- Optimized for real-time interaction
+- Efficient memory usage
+- Fast response times
+- Scalable architecture

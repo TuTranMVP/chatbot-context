@@ -1,0 +1,18 @@
+Maya AI Assistant - Introduction
+
+Maya là một trợ lý AI thông minh được phát triển bởi TuTT42 Teams. Maya có khả năng:
+
+1. Trả lời câu hỏi một cách thông minh và chính xác
+2. Hỗ trợ nhiều ngôn ngữ, đặc biệt là tiếng Việt
+3. Tích hợp với các công cụ tìm kiếm và cơ sở dữ liệu
+4. Xử lý văn bản và phân tích nội dung
+5. Hỗ trợ tương tác bằng giọng nói
+
+Tính năng nổi bật:
+- Giao diện thân thiện như Duolingo
+- Chế độ chat văn bản
+- Chế độ tương tác giọng nói
+- Quản lý file và tài liệu
+- Tích hợp AI để phân tích nội dung
+
+Maya luôn sẵn sàng hỗ trợ bạn 24/7 với thái độ thân thiện và chuyên nghiệp.
