@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import streamlit as st
+
 from .vector_text_processor import VectorTextProcessor
 
 
@@ -65,7 +66,7 @@ class FileManager:
                         vector_processing_success = vector_chunk_ids is not None
                         
                         if vector_processing_success:
-                            st.success(f"✅ File processed and stored in vector database: {len(vector_chunk_ids)} chunks")
+                            st.success(f"✅ File processed and stored in vector database: {len(vector_chunk_ids)} chunks") # type: ignore
                         else:
                             st.warning("⚠️ File saved but vector processing failed")
                     else:
@@ -124,7 +125,7 @@ class FileManager:
                 if self.vector_processing_enabled:
                     try:
                         filename = file_info.get("name", os.path.basename(file_info["path"]))
-                        removed_count = self.vector_processor.remove_by_filename(filename)
+                        removed_count = self.vector_processor.remove_by_filename(filename) # type: ignore
                         print(f"Removed {removed_count} chunks for file '{filename}' from vector database")
                     except Exception as e:
                         print(f"Warning: Failed to remove file from vector database: {str(e)}")
@@ -256,13 +257,6 @@ def render_file_manager():
                         st.markdown("**Content Preview:**")
                         st.code(file_info['content_preview'], language="text")
                         
-                        # Add to chat button
-                        if st.button("💬 Use in Chat", key=f"use_chat_{idx}", type="primary"):
-                            file_content = st.session_state.file_manager.read_file_content(file_info['path'])
-                            prompt = f"Based on this file content:\n\n**{file_info['name']}**\n\n{file_content}\n\nPlease analyze and help me with this document."
-                            st.session_state.pending_message = prompt
-                            st.session_state.current_mode = 'chat'
-                            st.rerun()
         else:
             if search_query:
                 st.info("🔍 No files found matching your search.")
