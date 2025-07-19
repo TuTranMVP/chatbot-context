@@ -490,7 +490,7 @@ def render_duolingo_css():
         justify-content: center;
         gap: 2rem;
         margin-top: 2rem;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
     }
     
     .stat-item {
@@ -502,6 +502,8 @@ def render_duolingo_css():
         border: 1px solid rgba(255, 255, 255, 0.2);
         min-width: 80px;
         transition: all 0.3s ease;
+        width: 100%;
+        max-width: 95px;
     }
     
     .stat-item:hover {
