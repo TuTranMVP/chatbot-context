@@ -8,11 +8,12 @@ import random
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 import openai
 import streamlit as st
-from sentence_transformers import SentenceTransformer
+from langchain_openai import AzureOpenAIEmbeddings
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
+from langchain.text_splitter import CharacterTextSplitter
 
 # Import function schemas from constants file
 from .function_constants import functions, voice_functions
@@ -97,10 +98,15 @@ class MayaChatbot:
         self.messages = [{'role': 'system', 'content': SYSTEM_MESSAGE}]
         self.voice_messages = [{'role': 'system', 'content': SYSTEM_MESSAGE}]
         self.client = self._get_openai_client()
-        self.db_client = chromadb.PersistentClient(path='./chroma_db')
-        self.similarity_threshold = 0.7  # Default distance threshold (0.3 similarity)
+        
+        # Initialize LangChain Azure OpenAI embeddings
+        self.embeddings = self._get_azure_embeddings()
+        
+        self.similarity_threshold = 0.7  # Default similarity threshold
         self.init_db()
-        self.additional_info_client = chromadb.PersistentClient(path='./vector_chroma_db')
+        
+        # Initialize additional info vector store embeddings
+        self.additional_embeddings = self._get_azure_embeddings()
 
     @st.cache_resource
     def _get_openai_client(_self):
@@ -109,6 +115,17 @@ class MayaChatbot:
             api_version='2024-07-01-preview',
             azure_endpoint='https://aiportalapi.stu-platform.live/jpe',
             api_key='sk-ht7c6K5jpVJUsJOdjTNtxA',
+        )
+
+    @st.cache_resource
+    def _get_azure_embeddings(_self):
+        """Initialize and cache Azure OpenAI embeddings"""
+        return AzureOpenAIEmbeddings(
+            api_key="sk-8YouTg_4fia-c-LA0yeEXQ",
+            azure_endpoint="https://aiportalapi.stu-platform.live/jpe",
+            api_version="2023-05-15",
+            model="text-embedding-3-small",
+            azure_deployment="text-embedding-3-small"
         )
 
     def generate_guide_template(
@@ -142,8 +159,8 @@ class MayaChatbot:
         fields: Optional[List[str]] = None,
         locale: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Generate mock data with specified parameters and format options."""
-
+        """Generate mock data using OpenAI API for realistic and diverse data."""
+ 
         # Set default values
         if output_format is None or not output_format:
             output_format = 'json'
@@ -173,11 +190,11 @@ class MayaChatbot:
             'user_provided_fields': bool(fields),
             'locale': locale,
             'generated_data': [],
-            'ai_enhanced': bool(recommended_fields) and not bool(fields),
+            'ai_enhanced': True,  # Always AI-enhanced now
         }
 
-        # Generate data
-        mock_data['generated_data'] = self._generate_data_by_type(
+        # Generate data using OpenAI API
+        mock_data['generated_data'] = self._generate_data_with_openai(
             data_type, enhanced_model, count, recommended_fields, locale
         )
 
@@ -320,7 +337,7 @@ class MayaChatbot:
             )
             return fallback['description'], fallback['fields']
 
-    def _generate_data_by_type(
+    def _generate_data_with_openai(
         self,
         data_type: str,
         data_model: str,
@@ -328,438 +345,107 @@ class MayaChatbot:
         fields: List[str],
         locale: str,
     ) -> List[Dict[str, Any]]:
-        """Generate data based on type and model."""
-        # Always prefer AI-enhanced generation when fields are available
-        if fields and len(fields) > 0:
-            return self._generate_enhanced_data_with_fields(
-                data_type, data_model, count, fields, locale
+        """Generate realistic mock data using OpenAI API."""
+        try:
+            # Prepare the prompt for OpenAI
+            fields_str = ", ".join(fields) if fields else "standard fields"
+            
+            prompt = f"""
+            Generate {count} realistic mock data entries for "{data_type}" with the following specifications:
+            
+            Data Model: {data_model}
+            Fields: {fields_str}
+            Locale: {locale}
+            
+            Requirements:
+            1. Generate exactly {count} entries
+            2. Each entry should be a JSON object with the specified fields
+            3. Make the data realistic and diverse for the "{data_type}" context
+            4. Consider the locale "{locale}" for names, addresses, and cultural context
+            5. Use appropriate data types (strings, numbers, booleans, dates)
+            6. Ensure variety in the generated values
+            
+            Return ONLY a valid JSON array of objects, no additional text or explanation.
+            
+            Example format:
+            [
+                {{"field1": "value1", "field2": "value2", ...}},
+                {{"field1": "value3", "field2": "value4", ...}}
+            ]
+            """
+
+            response = self.client.chat.completions.create(
+                model='GPT-4o-mini',
+                messages=[{'role': 'user', 'content': prompt}],
+                max_tokens=2000,
+                temperature=0.7,
             )
 
-        # Fallback to standard generators only if no AI fields are available
-        data_generators = {
-            'user': self._generate_user_data,
-            'product': self._generate_basic_product_data,
-            'order': lambda count,
-            model,
-            fields,
-            locale: self._generate_custom_data(count, fields),
-            'employee': lambda count,
-            model,
-            fields,
-            locale: self._generate_custom_data(count, fields),
-            'custom': lambda count,
-            model,
-            fields,
-            locale: self._generate_custom_data(count, fields),
-        }
-
-        generator = data_generators.get(data_type.lower())
-        if generator:
-            if data_type.lower() == 'user':
-                return generator(count, data_model, fields, locale)
-            else:
-                return generator(count, data_model, fields, locale)
-        else:
-            return self._generate_custom_data(count, fields)
-
-    def _generate_enhanced_data_with_fields(
-        self,
-        data_type: str,
-        data_model: str,
-        count: int,
-        fields: List[str],
-        locale: str,
-    ) -> List[Dict[str, Any]]:
-        """Generate enhanced data using AI-recommended fields."""
-
-        # Sample data pools for different field types
-        sample_data = {
-            # Names and identity
-            'name': [
-                'John Smith',
-                'Jane Doe',
-                'Mike Johnson',
-                'Sarah Wilson',
-                'David Brown',
-            ],
-            'first_name': [
-                'John',
-                'Jane',
-                'Mike',
-                'Sarah',
-                'David',
-                'Emily',
-                'Chris',
-                'Lisa',
-            ],
-            'last_name': [
-                'Smith',
-                'Johnson',
-                'Williams',
-                'Brown',
-                'Jones',
-                'Garcia',
-                'Miller',
-            ],
-            'username': [
-                'john_smith',
-                'jane_doe',
-                'mike_j',
-                'sarah_w',
-                'david_b',
-                'emily_c',
-                'chris_l',
-                'lisa_m',
-            ],
-            'loginname': [
-                'john.smith',
-                'jane.doe',
-                'mike.johnson',
-                'sarah.wilson',
-                'david.brown',
-            ],
-            'email': [
-                'user@example.com',
-                'test@gmail.com',
-                'sample@yahoo.com',
-            ],
-            # Authentication and security
-            'password': [
-                'SecurePass123!',
-                'MyPassword2024',
-                'StrongPwd@456',
-                'UserPass789#',
-                'SafeLogin2024!',
-            ],
-            # Business and commerce
-            'title': [
-                'Software Engineer',
-                'Product Manager',
-                'Designer',
-                'Analyst',
-                'Director',
-            ],
-            'company': [
-                'TechCorp',
-                'DataSoft',
-                'WebSolutions',
-                'AppDev Inc',
-                'Digital Pro',
-            ],
-            'department': [
-                'Engineering',
-                'Marketing',
-                'Sales',
-                'HR',
-                'Finance',
-            ],
-            'category': ['Electronics', 'Clothing', 'Books', 'Home', 'Sports'],
-            'brand': [
-                'Brand A',
-                'Brand B',
-                'Premium Co',
-                'Quality Ltd',
-                'Best Corp',
-            ],
-            'status': [
-                'active',
-                'inactive',
-                'pending',
-                'completed',
-                'cancelled',
-            ],
-            # Location
-            'country': [
-                'United States',
-                'Canada',
-                'United Kingdom',
-                'Germany',
-                'France',
-            ],
-            'city': [
-                'New York',
-                'Los Angeles',
-                'Chicago',
-                'Houston',
-                'Phoenix',
-            ],
-            'address': [
-                '123 Main St',
-                '456 Oak Ave',
-                '789 Pine Rd',
-                '321 Elm St',
-            ],
-            # Technical
-            'platform': ['web', 'mobile', 'desktop', 'api', 'cloud'],
-            'technology': ['Python', 'JavaScript', 'Java', 'React', 'Node.js'],
-            'version': ['1.0.0', '2.1.3', '3.2.1', '4.0.0', '5.1.2'],
-        }
-
-        generated_data = []
-
-        for i in range(count):
-            entry = {'id': i + 1}
-
-            for field in fields:
-                field_lower = field.lower()
-
-                # Generate appropriate data based on field name patterns
-                if any(
-                    keyword in field_lower
-                    for keyword in ['id', 'number', 'count', 'quantity']
-                ):
-                    entry[field] = random.randint(1, 10000)
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in [
-                        'price',
-                        'cost',
-                        'amount',
-                        'salary',
-                        'revenue',
-                    ]
-                ):
-                    entry[field] = round(random.uniform(10.99, 9999.99), 2)
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in ['date', 'time', 'created', 'updated']
-                ):
-                    base_date = datetime(2024, 1, 1)
-                    random_days = random.randint(0, 365)
-                    entry[field] = (
-                        base_date + timedelta(days=random_days)
-                    ).isoformat()
-
-                elif any(
-                    keyword in field_lower for keyword in ['email', 'mail']
-                ):
-                    domains = [
-                        'gmail.com',
-                        'yahoo.com',
-                        'example.com',
-                        'company.com',
-                    ]
-                    usernames = [
-                        'john.smith',
-                        'jane.doe',
-                        'mike.johnson',
-                        'sarah.wilson',
-                        'david.brown',
-                    ]
-                    entry[field] = (
-                        f'{random.choice(usernames).replace(".", "")}@{random.choice(domains)}'
-                    )
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in ['username', 'user_name', 'login']
-                ):
-                    base_usernames = [
-                        'john_smith',
-                        'jane_doe',
-                        'mike_j',
-                        'sarah_w',
-                        'david_b',
-                        'emily_c',
-                    ]
-                    entry[field] = (
-                        f'{random.choice(base_usernames)}{random.randint(1, 999)}'
-                    )
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in ['loginname', 'login_name']
-                ):
-                    base_logins = [
-                        'john.smith',
-                        'jane.doe',
-                        'mike.johnson',
-                        'sarah.wilson',
-                        'david.brown',
-                    ]
-                    entry[field] = (
-                        f'{random.choice(base_logins)}{random.randint(10, 99)}'
-                    )
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in ['password', 'pwd', 'pass']
-                ):
-                    passwords = [
-                        'SecurePass123!',
-                        'MyPassword2024',
-                        'StrongPwd@456',
-                        'UserPass789#',
-                        'SafeLogin2024!',
-                    ]
-                    entry[field] = random.choice(passwords)
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in ['phone', 'mobile', 'tel']
-                ):
-                    entry[field] = (
-                        f'+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}'
-                    )
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in ['url', 'website', 'link']
-                ):
-                    entry[field] = (
-                        f'https://example{random.randint(1, 100)}.com'
-                    )
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in [
-                        'bool',
-                        'is_',
-                        'has_',
-                        'can_',
-                        'verified',
-                        'active',
-                    ]
-                ):
-                    entry[field] = random.choice([True, False])
-
-                elif any(
-                    keyword in field_lower
-                    for keyword in ['rating', 'score', 'rank']
-                ):
-                    entry[field] = round(random.uniform(1.0, 5.0), 1)
-
-                else:
-                    # Try to match field name with sample data
-                    matched_samples = None
-                    for key, samples in sample_data.items():
-                        if key in field_lower or field_lower in key:
-                            matched_samples = samples
-                            break
-
-                    if matched_samples:
-                        if field_lower in ['username', 'loginname']:
-                            # Add random number to make usernames unique
-                            base_value = random.choice(matched_samples)
-                            entry[field] = (
-                                f'{base_value}{random.randint(1, 999)}'
-                            )
-                        else:
-                            entry[field] = random.choice(matched_samples)
+            # Parse the JSON response
+            generated_text = response.choices[0].message.content.strip()
+            
+            # Clean up the response (remove any markdown formatting)
+            if generated_text.startswith('```json'):
+                generated_text = generated_text[7:-3]
+            elif generated_text.startswith('```'):
+                generated_text = generated_text[3:-3]
+            
+            generated_data = json.loads(generated_text)
+            
+            # Ensure we have the right number of entries
+            if len(generated_data) > count:
+                generated_data = generated_data[:count]
+            elif len(generated_data) < count:
+                # If we got fewer entries, pad with the last entry modified
+                while len(generated_data) < count:
+                    if generated_data:
+                        new_entry = generated_data[-1].copy()
+                        # Modify some values to ensure uniqueness
+                        for key, value in new_entry.items():
+                            if isinstance(value, str) and 'id' not in key.lower():
+                                new_entry[key] = f"{value}_{len(generated_data) + 1}"
+                            elif isinstance(value, int) and 'id' in key.lower():
+                                new_entry[key] = len(generated_data) + 1
+                        generated_data.append(new_entry)
                     else:
-                        # Generate generic field value based on field name patterns
-                        if field_lower in ['username', 'user_name']:
-                            entry[field] = f'user_{i + 1}'
-                        elif field_lower in ['loginname', 'login_name']:
-                            entry[field] = f'user.{i + 1}'
-                        elif 'password' in field_lower:
-                            entry[field] = 'password123'
-                        elif 'email' in field_lower:
-                            entry[field] = f'user{i + 1}@example.com'
-                        else:
-                            entry[field] = f'sample_{field}_value_{i + 1}'
+                        break
+            
+            return generated_data
 
-            generated_data.append(entry)
+        except json.JSONDecodeError as e:
+            st.warning(f"Failed to parse OpenAI response as JSON: {e}")
+            return self._generate_fallback_data(data_type, count, fields)
+        except Exception as e:
+            st.warning(f"OpenAI API error: {e}")
+            return self._generate_fallback_data(data_type, count, fields)
 
-        return generated_data
-
-    def _generate_basic_user_data(self, count: int) -> List[Dict[str, Any]]:
-        """Generate basic user data."""
-        first_names = [
-            'John',
-            'Jane',
-            'Mike',
-            'Sarah',
-            'David',
-            'Emily',
-            'Chris',
-            'Lisa',
-            'Tom',
-            'Anna',
-        ]
-        last_names = [
-            'Smith',
-            'Johnson',
-            'Williams',
-            'Brown',
-            'Jones',
-            'Garcia',
-            'Miller',
-            'Davis',
-        ]
-        domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'example.com']
-
-        users = []
-        for i in range(count):
-            first_name = random.choice(first_names)
-            last_name = random.choice(last_names)
-            users.append(
-                {
-                    'id': i + 1,
-                    'username': f'{first_name.lower()}{last_name.lower()}{random.randint(1, 999)}',
-                    'email': f'{first_name.lower()}.{last_name.lower()}@{random.choice(domains)}',
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'age': random.randint(18, 65),
-                    'phone': f'+1-555-{random.randint(100, 999)}-{random.randint(1000, 9999)}',
-                    'status': random.choice(['active', 'inactive', 'pending']),
-                    'created_at': '2024-01-01T00:00:00Z',
-                }
-            )
-        return users
-
-    def _generate_basic_product_data(self, count: int) -> List[Dict[str, Any]]:
-        """Generate basic product data."""
-        categories = [
-            'Electronics',
-            'Clothing',
-            'Books',
-            'Home & Garden',
-            'Sports',
-        ]
-        brands = ['TechCorp', 'StyleCo', 'ReadMore', 'HomeBasics', 'SportsPro']
-
-        products = []
-        for i in range(count):
-            category = random.choice(categories)
-            products.append(
-                {
-                    'product_id': i + 1,
-                    'name': f'Product {i + 1}',
-                    'category': category,
-                    'brand': random.choice(brands),
-                    'price': round(random.uniform(10.99, 999.99), 2),
-                    'description': f'High quality product in {category.lower()} category',
-                    'stock_quantity': random.randint(0, 100),
-                    'rating': round(random.uniform(3.0, 5.0), 1),
-                    'created_at': '2024-01-01T00:00:00Z',
-                }
-            )
-        return products
-
-    def _generate_custom_data(
-        self, count: int, fields: Optional[List[str]]
+    def _generate_fallback_data(
+        self, data_type: str, count: int, fields: List[str]
     ) -> List[Dict[str, Any]]:
-        """Generate custom data."""
-        custom_data = []
+        """Generate simple fallback data when OpenAI fails."""
+        fallback_data = []
         for i in range(count):
             entry = {'id': i + 1}
             if fields:
                 for field in fields:
-                    entry[field] = f'sample_{field}_value_{i + 1}'
+                    if 'id' in field.lower():
+                        entry[field] = i + 1
+                    elif 'name' in field.lower():
+                        entry[field] = f'Sample {field.title()} {i + 1}'
+                    elif 'email' in field.lower():
+                        entry[field] = f'user{i + 1}@example.com'
+                    elif 'date' in field.lower():
+                        entry[field] = '2024-01-01T00:00:00Z'
+                    else:
+                        entry[field] = f'sample_{field}_value_{i + 1}'
             else:
-                entry.update(
-                    {
-                        'name': f'Item {i + 1}',
-                        'description': f'Description for item {i + 1}',
-                        'value': f'Value_{i + 1}',
-                        'created_at': '2024-01-01T00:00:00Z',
-                    }
-                )
-            custom_data.append(entry)
-        return custom_data
+                entry.update({
+                    'name': f'{data_type.title()} {i + 1}',
+                    'description': f'Sample {data_type} entry {i + 1}',
+                    'created_at': '2024-01-01T00:00:00Z',
+                })
+            fallback_data.append(entry)
+        return fallback_data
 
     def handle_standard_faq(
         self,
@@ -778,7 +464,7 @@ class MayaChatbot:
         }
 
     def process_function_call(self, function_call) -> Optional[Dict[str, Any]]:
-        """Process function calls and return structured responses."""
+        """Process function calls and return structured responfses."""
         try:
             arguments = json.loads(function_call.arguments)
             function_name = function_call.name
@@ -884,33 +570,40 @@ class MayaChatbot:
     ) -> Tuple[str, Optional[Dict[str, Any]]]:
         """Process user message and return response."""
         try:
-            # Log the additional messages if provided
-            if filenames:
-                print(f"Log messages: {filenames}")
-                for i, msg in enumerate(filenames):
-                    print(f"  [{i+1}] {msg}")
+            print(f"Processing user question: {user_question}")
+            print(f"Current conversation history: {filenames}")
 
-            if filenames:
-                self.additional_info_collection = self.additional_info_client.get_collection("additional_info_collection")
-                additional_context_result = self.additional_info_collection.query(
-                    query_texts=[user_question], 
-                    n_results=5
+            if not hasattr(self, 'additional_vectorstore'):
+                self.additional_vectorstore = Chroma(
+                    collection_name="azure_openai_1536_collection",
+                    embedding_function=self.additional_embeddings,
+                    persist_directory="./vector_chroma_db"
                 )
                 
-                # Filter results using the dedicated function
-                print(f"Raw additional context result: {additional_context_result}")
-                filtered_results = self.filter_results_by_threshold(additional_context_result)
-                
-                # Add context to messages if we have filtered results
-                if filtered_results:
-                    history_context = "\n".join([
-                        f"- {result['document']}" for result in filtered_results
-                    ])
-                    context_message = {
-                        "role": "system", 
-                        "content": f"additional preference info for user question:\n{history_context}"
-                    }
-                    self.messages.append(context_message)
+            # Use similarity_search_with_score and filter by threshold
+            docs_with_scores = self.additional_vectorstore.similarity_search_with_score(
+                user_question,
+                k=5
+            )
+            
+            # Filter by similarity threshold (convert distance to similarity: similarity = 1 - distance)
+            filtered_docs = [
+                (doc, score) for doc, score in docs_with_scores 
+                if (1 - score) >= self.similarity_threshold
+            ]
+
+            print(f"Filtered documents: {len(filtered_docs)} found")
+                    
+            # Add context to messages if we have filtered results
+            if filtered_docs:
+                history_context = "\n".join([
+                    f"- {doc.page_content}" for doc, score in filtered_docs
+                ])
+                context_message = {
+                    "role": "system",
+                    "content": f"additional preference info for user question:\n{history_context}"
+                }
+                self.messages.append(context_message)
 
             # Add user question to conversation history
             self.messages.append({'role': 'user', 'content': user_question})
@@ -1059,19 +752,20 @@ class MayaChatbot:
             message = 'recommend movie'
 
         try:
-            # Use query_texts since we have an embedding function configured
-            query_result = self.collection.query(
-                query_texts=[message], 
-                n_results=limit or 2,
-                include=['metadatas', 'documents', 'distances', 'embeddings']
+            # Use LangChain vector store with similarity_search_with_score
+            docs_with_scores = self.vectorstore.similarity_search_with_score(
+                message,
+                k=limit or 2
             )
-            print(f"Raw query result: {query_result}")
-
-            filtered_results = self.filter_results_by_threshold(query_result, 1.3)
             
-            movie_names = [
-                result['metadata']['title'] for result in filtered_results
+            # Filter by similarity threshold (convert distance to similarity)
+            filtered_docs = [
+                (doc, score) for doc, score in docs_with_scores 
+                if (1 - score) >= self.similarity_threshold
             ]
+            
+            # Extract movie data directly (already filtered by threshold)
+            movie_names = [doc.metadata.get('title', '') for doc, score in filtered_docs]
 
             # Create the basic recommendation text
             recommendation_text = (
@@ -1123,111 +817,65 @@ class MayaChatbot:
         self.init_movie_db()
 
     def init_movie_db(self):
-        """Initialize the ChromaDB database."""
-        # Create OpenAI embedding function for Azure
-        openai_ef = OpenAIEmbeddingFunction(
-            api_key="sk-8YouTg_4fia-c-LA0yeEXQ",
-            api_base="https://aiportalapi.stu-platform.live/jpe",
-            api_type="azure",
-            api_version="2023-05-15",
-            model_name="text-embedding-3-small",
-            deployment_id="text-embedding-3-small"
-        )
-        
-        # Delete collection if it exists before creating
+        """Initialize the LangChain vector store with movie data."""
         try:
-            self.db_client.delete_collection(name='test_collection')
-            print("Deleted existing test_collection")
-        except Exception as e:
-            print(f"Collection 'test_collection' doesn't exist or couldn't be deleted: {e}")
-        
-        self.collection = self.db_client.get_or_create_collection(
-            name='test_collection',
-            embedding_function=openai_ef
-        )
-        print("ChromaDB collection initialized with OpenAI embeddings.")
+            # Initialize the vector store
+            self.vectorstore = Chroma(
+                collection_name="azure_openai_movie_collection",
+                embedding_function=self.embeddings,
+                persist_directory="./chroma_db"
+            )
+            
+            print("LangChain Chroma vector store initialized.")
 
-        existing_data = self.collection.get()
-        if len(existing_data["ids"]) > 0:
-            return
+            # Check if data already exists
+            existing_docs = self.vectorstore.get()
+            if len(existing_docs.get('ids', [])) > 0:
+                print("Movie data already exists in vector store.")
+                return
 
-        with open('movies.json', 'r', encoding='utf-8') as f:
-            data = json.load(f)
+            # Load movie data
+            with open('movies.json', 'r', encoding='utf-8') as f:
+                data = json.load(f)
 
-        # Nếu chỉ có 1 phim, chuyển thành list
-        if isinstance(data, dict):
-            data = [data]
+            # Convert to list if single movie
+            if isinstance(data, dict):
+                data = [data]
 
-        documents = [f"{item['description']} {item['title']} {item['genres']}" for item in data]
-        titles = [item['title'] for item in data]
-        genres_list = [item['genres'] for item in data]
-        descriptions = [item['description'] for item in data]
-        ratings = [item.get('ratings', None) for item in data]
-        comments = [item.get('comments', []) for item in data]
-        countries = [item.get('countries', None) for item in data]
-        years = [item.get('year', None) for item in data]
-        labels = [1] * len(
-            titles
-        )  # Gán nhãn Positive, hoặc tự xử lý nếu có trường label
-
-        # No need to generate embeddings manually when using embedding function
-        # ChromaDB will automatically generate embeddings using OpenAI
-        self.collection.add(
-            documents=documents,
-            # embeddings parameter is not needed when using embedding_function
-            ids=[str(i) for i in range(len(descriptions))],
-            metadatas=[
-                {
-                    'title': titles[i],
-                    'genres': ', '.join(genres_list[i])
-                    if isinstance(genres_list[i], list)
-                    else str(genres_list[i]),
-                    'label': labels[i],
-                    'ratings': ratings[i],
-                    'comments': '\n'.join(comments[i])
-                    if isinstance(comments[i], list)
-                    else str(comments[i]),
-                    'countries': countries[i],
-                    'year': years[i],
-                    'description': descriptions[i],
+            # Create LangChain documents
+            documents = []
+            for i, item in enumerate(data):
+                # Combine description, title, and genres for content
+                content = f"{item['description']} {item['title']} {item['genres']}"
+                
+                # Prepare metadata
+                metadata = {
+                    'title': item['title'],
+                    'genres': ', '.join(item['genres']) if isinstance(item['genres'], list) else str(item['genres']),
+                    'ratings': item.get('ratings', None),
+                    'comments': '\n'.join(item.get('comments', [])) if isinstance(item.get('comments', []), list) else str(item.get('comments', '')),
+                    'countries': item.get('countries', None),
+                    'year': item.get('year', None),
+                    'description': item['description'],
+                    'doc_id': str(i)
                 }
-                for i in range(len(descriptions))
-            ],
-        )
+                
+                # Create Document object
+                doc = Document(
+                    page_content=content,
+                    metadata=metadata
+                )
+                documents.append(doc)
 
-    def filter_results_by_threshold(self, query_result: Dict[str, Any], 
-                                  similarity_threshold: Optional[float] = None) -> List[Dict[str, Any]]:
-        """Filter ChromaDB query results by similarity threshold.
-        
-        Args:
-            query_result: ChromaDB query result containing distances, documents, metadatas
-            similarity_threshold: Custom threshold, or use instance default if None
+            # Add documents to vector store
+            self.vectorstore.add_documents(documents)
+            print(f"Added {len(documents)} movie documents to vector store.")
             
-        Returns:
-            List of filtered results with similarity scores
-        """
-        if similarity_threshold is None:
-            similarity_threshold = 1
-            
-        filtered_results = []
-        
-        if query_result['distances'] and query_result['distances'][0]:
-            print(f"Query result distances: {query_result['distances'][0]}")
-            for i, distance in enumerate(query_result['distances'][0]):
-                if distance < similarity_threshold:
-                    result_data = {
-                        'document': query_result['documents'][0][i],
-                        'metadata': query_result['metadatas'][0][i],
-                        'distance': distance,
-                        'similarity': 1 - distance  # Convert distance to similarity score
-                    }
-                    
-                    # Include embedding if available
-                    if query_result.get('embeddings') and query_result['embeddings'][0]:
-                        result_data['embedding'] = query_result['embeddings'][0][i]
-                    
-                    filtered_results.append(result_data)
-
-        print(f"Filtered results: {filtered_results}")
-        print(f"Filtered {len(filtered_results)} results above similarity threshold ({1-similarity_threshold:.1f})")
-        return filtered_results
+        except Exception as e:
+            print(f"Error initializing movie database: {e}")
+            # Fallback to empty vector store
+            self.vectorstore = Chroma(
+                collection_name="azure_openai_movie_collection",
+                embedding_function=self.embeddings,
+                persist_directory="./chroma_db"
+            )

@@ -36,6 +36,7 @@ select = [
 ignore = [
     "E501",  # Line too long (để formatter tự xử lý)
     "E203",  # Whitespace before ':' 
+    "W293",  # Blank line contains whitespace
 ]
 
 # 📁 Rules cho từng loại file

@@ -3,14 +3,25 @@ Vector Text Processor - Optimized version
 Đọc text từ PDF, TXT, MD và lưu vào ChromaDB với Vector Embeddings
 Tối ưu hiệu suất, memory usage và error handling
 """
- 
+
 import os
 import uuid
 import hashlib
 import time
 import warnings
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typi    def _initialize_langchain_vectorstore(self):
+        """Initialize LangChain Chroma vector store"""
+        try:
+            self.vectorstore = Chroma(
+                collection_name="azure_openai_1536_collection",
+                embedding_function=self.embeddings,
+                persist_directory=self.db_path
+            )
+            logger.info("✅ LangChain Chroma vector store initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize LangChain vector store: {e}")
+            raisest, Dict, Any, Optional, Tuple
 from pathlib import Path
 from functools import lru_cache
  
@@ -18,11 +29,13 @@ from functools import lru_cache
 import PyPDF2
 import fitz  # PyMuPDF
 import markdown
-import chromadb
 import numpy as np
- 
-# Lazy import for sentence_transformers
-SentenceTransformer = None
+
+# LangChain imports
+from langchain_openai import AzureOpenAIEmbeddings
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
+from langchain.text_splitter import CharacterTextSplitter
  
 # Tắt warnings và telemetry
 warnings.filterwarnings('ignore')
@@ -43,17 +56,6 @@ def configure_ssl():
     except Exception as e:
         logger.warning(f"SSL configuration failed: {e}")
         return False
- 
-def load_sentence_transformer():
-    """Lazy load SentenceTransformer chỉ khi cần"""
-    global SentenceTransformer
-    if SentenceTransformer is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-        except ImportError as e:
-            logger.error(f"Failed to import SentenceTransformer: {e}")
-            SentenceTransformer = None
-    return SentenceTransformer
 
 class VectorTextProcessor:
     """
@@ -64,7 +66,7 @@ class VectorTextProcessor:
     # Class constants
     DEFAULT_CHUNK_SIZE = 1000
     DEFAULT_OVERLAP = 200
-    EMBEDDING_DIMENSION = 384
+    EMBEDDING_DIMENSION = 1536  # Azure OpenAI text-embedding-3-small dimension
     SUPPORTED_EXTENSIONS = {'.pdf', '.txt', '.md', '.markdown'}
     ENCODING_FALLBACKS = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252']
    
@@ -74,110 +76,51 @@ class VectorTextProcessor:
                  enable_caching: bool = True,
                  max_workers: int = 4):
         """
-        Khởi tạo VectorTextProcessor với các tối ưu
+        Khởi tạo VectorTextProcessor với LangChain vector stores
         """
         self.db_path = db_path
         self.embedding_model_name = embedding_model
         self.enable_caching = enable_caching
         self.max_workers = max_workers
-        self.embedding_model = None
         self._cache = {} if enable_caching else None
-       
+        
         # Configure SSL first
         configure_ssl()
-       
-        # Initialize embedding model
-        self._initialize_embedding_model()
-       
-        # Initialize ChromaDB
-        self._initialize_chromadb()
-       
-        logger.info(f"VectorTextProcessor initialized successfully")
+        
+        # Initialize Azure OpenAI embeddings
+        self._initialize_azure_embeddings()
+        
+        # Initialize LangChain Chroma vector store
+        self._initialize_langchain_vectorstore()
+        
+        logger.info(f"VectorTextProcessor initialized successfully with Azure OpenAI embeddings")
    
-    def _initialize_embedding_model(self):
-        """Khởi tạo embedding model với fallback strategy tối ưu"""
-        logger.info(f"🤖 Initializing embedding model: {self.embedding_model_name}")
-       
-        SentenceTransformer = load_sentence_transformer()
-        if not SentenceTransformer:
-            logger.warning("SentenceTransformer not available, using hash fallback")
-            return
-           
-        # Strategy 1: Local cache
-        if self._try_load_local_model(SentenceTransformer):
-            return
-           
-        # Strategy 2: Download with SSL bypass
-        if self._try_download_model(SentenceTransformer):
-            return
-           
-        # Strategy 3: Alternative models
-        if self._try_alternative_models(SentenceTransformer):
-            return
-           
-        # Final fallback
-        logger.warning("🔧 Using hash-based embeddings as fallback")
-        self._log_embedding_guidance()
-   
-    def _try_load_local_model(self, SentenceTransformer) -> bool:
-        """Thử load model từ cache local"""
+    def _initialize_azure_embeddings(self):
+        """Initialize Azure OpenAI embeddings for LangChain"""
         try:
-            logger.info("🔄 Loading from local cache...")
-            self.embedding_model = SentenceTransformer(self.embedding_model_name, local_files_only=True)
-            logger.info("✅ Loaded model from local cache")
-            return True
+            self.embeddings = AzureOpenAIEmbeddings(
+                api_key="sk-8YouTg_4fia-c-LA0yeEXQ",
+                azure_endpoint="https://aiportalapi.stu-platform.live/jpe",
+                api_version="2023-05-15",
+                model="text-embedding-3-small",
+                azure_deployment="text-embedding-3-small"
+            )
+            logger.info("✅ Azure OpenAI embeddings initialized")
         except Exception as e:
-            logger.debug(f"Local cache failed: {e}")
-            return False
-   
-    def _try_download_model(self, SentenceTransformer) -> bool:
-        """Thử download model với SSL bypass"""
+            logger.error(f"Failed to initialize Azure embeddings: {e}")
+            raise Exception(f"Azure OpenAI embeddings required but failed to initialize: {e}")
+    
+    def _initialize_langchain_vectorstore(self):
+        """Initialize LangChain Chroma vector store"""
         try:
-            logger.info("🔄 Downloading with SSL bypass...")
-            import requests
-            requests.packages.urllib3.disable_warnings()
-           
-            self.embedding_model = SentenceTransformer(self.embedding_model_name, trust_remote_code=True)
-            logger.info("✅ Downloaded model successfully")
-            return True
+            self.vectorstore = Chroma(
+                collection_name="additional_info_collection",
+                embedding_function=self.embeddings if hasattr(self, 'embeddings') else None,
+                persist_directory=self.db_path
+            )
+            logger.info("� LangChain Chroma vector store initialized")
         except Exception as e:
-            logger.debug(f"Download failed: {e}")
-            return False
-   
-    def _try_alternative_models(self, SentenceTransformer) -> bool:
-        """Thử các model thay thế"""
-        alternatives = [
-            'paraphrase-MiniLM-L6-v2',
-            'distilbert-base-nli-stsb-mean-tokens',
-            'all-mpnet-base-v2'
-        ]
-       
-        for alt_model in alternatives:
-            try:
-                logger.info(f"🔄 Trying alternative: {alt_model}")
-                self.embedding_model = SentenceTransformer(alt_model, local_files_only=True)
-                logger.info(f"✅ Loaded alternative model: {alt_model}")
-                return True
-            except:
-                continue
-        return False
-   
-    def _log_embedding_guidance(self):
-        """Log hướng dẫn cho user"""
-        logger.info("💡 To use ML embeddings:")
-        logger.info("   1. Download offline: huggingface-cli download sentence-transformers/all-MiniLM-L6-v2")
-        logger.info("   2. Update certificates: pip install --upgrade certifi")
-        logger.info("   3. Use VPN/proxy for SSL bypass")
-   
-    def _initialize_chromadb(self):
-        """Khởi tạo ChromaDB với error handling"""
-        try:
-            self.client = chromadb.PersistentClient(path=self.db_path)
-            # Use the helper method for better error handling
-            self.get_or_create_collection("additional_info_collection")
-               
-        except Exception as e:
-            logger.error(f"Failed to initialize ChromaDB: {e}")
+            logger.error(f"Failed to initialize LangChain vector store: {e}")
             raise
    
     def chunk_text(self, text: str, chunk_size: Optional[int] = None, overlap: Optional[int] = None) -> List[str]:
@@ -213,36 +156,42 @@ class VectorTextProcessor:
         return chunks
    
     def create_embedding(self, text: str) -> Optional[List[float]]:
-        """Tạo embedding với optimization"""
+        """Create embedding using Azure OpenAI only"""
         if not text.strip():
             return None
            
         try:
-            if self.embedding_model is None:
-                return self._create_hash_embedding(text)
-           
-            embedding = self.embedding_model.encode(text, convert_to_tensor=False)
-            return embedding.tolist() if hasattr(embedding, 'tolist') else list(embedding)
+            # Use Azure OpenAI embeddings only
+            return self.embeddings.embed_query(text)
            
         except Exception as e:
-            logger.error(f"Embedding creation failed: {e}")
-            return self._create_hash_embedding(text)
+            logger.error(f"Azure OpenAI embedding creation failed: {e}")
+            raise Exception(f"Azure OpenAI embeddings required but failed: {e}")
    
     def _create_hash_embedding(self, text: str) -> List[float]:
-        """Tạo hash-based embedding tối ưu"""
+        """Tạo hash-based embedding tối ưu với Azure OpenAI dimension (1536)"""
         text_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
        
         embedding = []
-        for i in range(0, min(len(text_hash), self.EMBEDDING_DIMENSION * 2), 2):
-            hex_pair = text_hash[i:i+2]
-            embedding.append(int(hex_pair, 16) / 255.0)
+        # Create multiple hash rounds to reach 1536 dimensions
+        for round_num in range(24):  # 24 rounds * 64 values = 1536
+            round_hash = hashlib.sha256(f"{text}_{round_num}".encode('utf-8')).hexdigest()
+            for i in range(0, min(len(round_hash), 128), 2):  # 64 hex pairs per round
+                hex_pair = round_hash[i:i+2]
+                embedding.append(int(hex_pair, 16) / 255.0)
+                if len(embedding) >= self.EMBEDDING_DIMENSION:
+                    break
+            if len(embedding) >= self.EMBEDDING_DIMENSION:
+                break
        
-        # Pad to correct dimension
+        # Ensure exact dimension
+        embedding = embedding[:self.EMBEDDING_DIMENSION]
+        
+        # Pad if needed (shouldn't happen with above logic)
         while len(embedding) < self.EMBEDDING_DIMENSION:
-            embedding.extend(embedding[:min(self.EMBEDDING_DIMENSION - len(embedding), len(embedding))])
+            embedding.append(0.0)
        
         # Normalize vector
-        embedding = embedding[:self.EMBEDDING_DIMENSION]
         norm = sum(x*x for x in embedding) ** 0.5
         if norm > 0:
             embedding = [x / norm for x in embedding]
@@ -380,9 +329,7 @@ class VectorTextProcessor:
             "processing_time": round(processing_time, 3),
             "processed_at": time.time()
         }
-
-        print(f"metadata {metadata}")
-
+       
         logger.info(f"Processed {file_path.name}: {len(content)} chars in {processing_time:.2f}s")
        
         return {
@@ -390,16 +337,17 @@ class VectorTextProcessor:
             "metadata": metadata
         }
    
-    def add_to_chromadb(self,
-                        content: str,
-                        metadata: Dict[str, Any],
-                        doc_id: Optional[str] = None,
-                        use_chunking: bool = True) -> Optional[List[str]]:
-        """Thêm text vào ChromaDB với optimized chunking"""
+    def add_to_vectorstore(self,
+                          content: str,
+                          metadata: Dict[str, Any],
+                          doc_id: Optional[str] = None,
+                          use_chunking: bool = True) -> Optional[List[str]]:
+        """Thêm text vào LangChain vector store với optimized chunking"""
         doc_id = doc_id or str(uuid.uuid4())
        
         try:
             chunk_ids = []
+            documents = []
            
             if use_chunking and len(content) > self.DEFAULT_CHUNK_SIZE:
                 chunks = self.chunk_text(content)
@@ -416,45 +364,44 @@ class VectorTextProcessor:
                         "chunk_length": len(chunk)
                     })
                    
-                    embedding = self.create_embedding(chunk)
-                    if embedding:
-                        self.collection.add(
-                            documents=[chunk],
-                            metadatas=[chunk_metadata],
-                            ids=[chunk_id],
-                            embeddings=[embedding]
-                        )
-                        chunk_ids.append(chunk_id)
+                    doc = Document(
+                        page_content=chunk,
+                        metadata=chunk_metadata
+                    )
+                    documents.append(doc)
+                    chunk_ids.append(chunk_id)
                
-                logger.info(f"✅ Added {len(chunk_ids)} chunks for document: {doc_id}")
+                logger.info(f"✅ Prepared {len(chunk_ids)} chunks for document: {doc_id}")
                    
             else:
-                embedding = self.create_embedding(content)
-                if embedding:
-                    self.collection.add(
-                        documents=[content],
-                        metadatas=[metadata],
-                        ids=[doc_id],
-                        embeddings=[embedding]
-                    )
-                    chunk_ids = [doc_id]
-                    logger.info(f"✅ Added document: {doc_id}")
+                doc = Document(
+                    page_content=content,
+                    metadata=metadata
+                )
+                documents.append(doc)
+                chunk_ids = [doc_id]
+                logger.info(f"✅ Prepared document: {doc_id}")
+            
+            # Add documents to vector store
+            if documents:
+                self.vectorstore.add_documents(documents)
+                logger.info(f"✅ Added {len(documents)} documents to vector store")
            
             return chunk_ids
            
         except Exception as e:
-            logger.error(f"Failed to add to ChromaDB: {e}")
+            logger.error(f"Failed to add to vector store: {e}")
             return None
    
     def process_and_store_file(self, file_path: str, use_chunking: bool = True) -> Optional[List[str]]:
-        """Xử lý và lưu file với optimization"""
+        """Xử lý và lưu file với LangChain vector store"""
         start_time = time.time()
        
         result = self.process_file(file_path)
         if result is None:
             return None
        
-        chunk_ids = self.add_to_chromadb(
+        chunk_ids = self.add_to_vectorstore(
             content=result["content"],
             metadata=result["metadata"],
             use_chunking=use_chunking
@@ -469,7 +416,7 @@ class VectorTextProcessor:
                      query: str,
                      n_results: int = 5,
                      score_threshold: float = 0.0) -> Optional[Dict[str, Any]]:
-        """Tìm kiếm với optimization"""
+        """Tìm kiếm với LangChain vector store"""
         if not query.strip():
             logger.warning("Empty query provided")
             return None
@@ -477,21 +424,38 @@ class VectorTextProcessor:
         try:
             start_time = time.time()
            
-            query_embedding = self.create_embedding(query)
-            if query_embedding is None:
-                logger.error("Failed to create query embedding")
-                return None
-           
-            results = self.collection.query(
-                query_embeddings=[query_embedding],
-                n_results=n_results
-            )
+            if score_threshold > 0.0:
+                # Use similarity search with score threshold
+                docs_with_scores = self.vectorstore.similarity_search_with_score(
+                    query,
+                    k=n_results
+                )
+                
+                # Filter by threshold (convert distance to similarity: similarity = 1 - distance)
+                filtered_docs = [
+                    (doc, score) for doc, score in docs_with_scores 
+                    if (1 - score) >= score_threshold
+                ]
+                
+                # Convert to expected format
+                results = {
+                    'documents': [[doc.page_content for doc, score in filtered_docs]],
+                    'metadatas': [[doc.metadata for doc, score in filtered_docs]],
+                    'ids': [[doc.metadata.get('chunk_id', f'doc_{i}') for i, (doc, score) in enumerate(filtered_docs)]],
+                    'distances': [[score for doc, score in filtered_docs]]
+                }
+            else:
+                # Regular similarity search
+                docs = self.vectorstore.similarity_search(query, k=n_results)
+                results = {
+                    'documents': [[doc.page_content for doc in docs]],
+                    'metadatas': [[doc.metadata for doc in docs]],
+                    'ids': [[doc.metadata.get('chunk_id', f'doc_{i}') for i, doc in enumerate(docs)]],
+                    'distances': [[0.0 for _ in docs]]  # No scores available
+                }
            
             search_time = time.time() - start_time
             logger.info(f"Search completed in {search_time:.3f}s")
-           
-            if score_threshold > 0.0 and 'distances' in results and results['distances']:
-                return self._filter_by_threshold(results, score_threshold)
            
             return results
            
@@ -499,35 +463,23 @@ class VectorTextProcessor:
             logger.error(f"Vector search failed: {e}")
             return None
    
-    def _filter_by_threshold(self, results: Dict[str, Any], threshold: float) -> Dict[str, Any]:
-        """Filter results by similarity threshold"""
-        filtered = {
-            'documents': [[]],
-            'metadatas': [[]],
-            'ids': [[]],
-            'distances': [[]]
-        }
-       
-        for i, distance in enumerate(results['distances'][0]):
-            similarity_score = 1.0 - distance
-            if similarity_score >= threshold:
-                filtered['documents'][0].append(results['documents'][0][i])
-                filtered['metadatas'][0].append(results['metadatas'][0][i])
-                filtered['ids'][0].append(results['ids'][0][i])
-                filtered['distances'][0].append(distance)
-       
-        return filtered
-   
     def get_collection_info(self) -> Dict[str, Any]:
-        """Lấy thông tin collection với additional metrics"""
+        """Lấy thông tin vector store với additional metrics"""
         try:
-            count = self.collection.count()
+            # Get document count from LangChain vector store
+            try:
+                # Try to get collection info if available
+                collection_data = self.vectorstore._collection.get()
+                count = len(collection_data.get('ids', []))
+            except:
+                count = 0
            
             return {
-                "collection_name": self.collection.name,
+                "collection_name": "azure_openai_1536_collection",
                 "document_count": count,
                 "db_path": self.db_path,
-                "embedding_model": self.embedding_model_name if self.embedding_model else "hash-fallback",
+                "embedding_method": "Azure OpenAI",
+                "vectorstore_type": "LangChain Chroma",
                 "caching_enabled": self.enable_caching,
                 "max_workers": self.max_workers
             }
@@ -539,65 +491,25 @@ class VectorTextProcessor:
     def get_performance_stats(self) -> Dict[str, Any]:
         """Lấy performance statistics"""
         return {
-            "embedding_method": "ML" if self.embedding_model else "Hash",
+            "embedding_method": "Azure OpenAI",
+            "vectorstore_type": "LangChain Chroma",
             "supported_formats": list(self.SUPPORTED_EXTENSIONS),
             "chunk_size": self.DEFAULT_CHUNK_SIZE,
             "embedding_dimension": self.EMBEDDING_DIMENSION
         }
     
-    def get_or_create_collection(self, collection_name: str = None) -> None:
-        """Get or create a ChromaDB collection with proper error handling"""
-        if collection_name is None:
-            collection_name = "additional_info_collection"
-            
+    def search_similar_documents(self, query: str, k: int = 5, threshold: float = 0.7) -> List[Tuple[Document, float]]:
+        """Search for similar documents using LangChain interface"""
         try:
-            # Try to get existing collection
-            self.collection = self.client.get_collection(collection_name)
-            logger.info(f"📊 Connected to existing collection: {collection_name}")
-        except Exception:
-            try:
-                # Collection doesn't exist, create it
-                self.collection = self.client.create_collection(
-                    name=collection_name,
-                    metadata={"description": "Optimized vector text storage"}
-                )
-                logger.info(f"📊 Created new collection: {collection_name}")
-            except Exception as e:
-                logger.error(f"Failed to create collection {collection_name}: {e}")
-                raise
-
-    def remove_by_filename(self, filename: str) -> bool:
-        """Remove all documents/chunks from ChromaDB based on filename"""
-        try:
-            # Query all documents with the specified filename
-            results = self.collection.get(
-                where={"filename": filename},
-                include=['ids', 'metadatas']
-            )
+            docs_with_scores = self.vectorstore.similarity_search_with_score(query, k=k)
             
-            if not results['ids']:
-                logger.warning(f"No documents found for filename: {filename}")
-                return False
+            # Filter by similarity threshold
+            filtered_docs = [
+                (doc, score) for doc, score in docs_with_scores 
+                if (1 - score) >= threshold
+            ]
             
-            # Delete all matching documents
-            self.collection.delete(ids=results['ids'])
-            
-            deleted_count = len(results['ids'])
-            logger.info(f"✅ Removed {deleted_count} documents/chunks for filename: {filename}")
-            return True
-            
+            return filtered_docs
         except Exception as e:
-            logger.error(f"Failed to remove documents for filename {filename}: {e}")
-            return False
-    
-    def remove_by_filenames(self, filenames: List[str]) -> Dict[str, bool]:
-        """Remove documents from ChromaDB for multiple filenames"""
-        results = {}
-        
-        for filename in filenames:
-            results[filename] = self.remove_by_filename(filename)
-        
-        successful_removals = sum(1 for success in results.values() if success)
-        logger.info(f"Removal summary: {successful_removals}/{len(filenames)} files successfully removed")
-        
-        return results
+            logger.error(f"Similar document search failed: {e}")
+            return []
