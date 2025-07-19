@@ -102,11 +102,12 @@ class MayaChatbot:
         # Initialize LangChain Azure OpenAI embeddings
         self.embeddings = self._get_azure_embeddings()
         
-        self.similarity_threshold = 0.7  # Default similarity threshold
-        self.init_db()
-        
+        self.similarity_threshold = 0.7     
         # Initialize additional info vector store embeddings
         self.additional_embeddings = self._get_azure_embeddings()
+        
+        # Initialize databases
+        self.init_db()
 
     @st.cache_resource
     def _get_openai_client(_self):
@@ -752,6 +753,13 @@ class MayaChatbot:
             message = 'recommend movie'
 
         try:
+            # Check if vectorstore is available
+            if not hasattr(self, 'vectorstore') or self.vectorstore is None:
+                return {
+                    'type': 'movie_simple',
+                    'message': 'Movie recommendation service is currently unavailable. Please try again later.',
+                }
+
             # Use LangChain vector store with similarity_search_with_score
             docs_with_scores = self.vectorstore.similarity_search_with_score(
                 message,
@@ -829,14 +837,24 @@ class MayaChatbot:
             print("LangChain Chroma vector store initialized.")
 
             # Check if data already exists
-            existing_docs = self.vectorstore.get()
-            if len(existing_docs.get('ids', [])) > 0:
-                print("Movie data already exists in vector store.")
-                return
+            try:
+                existing_docs = self.vectorstore.get()
+                if len(existing_docs.get('ids', [])) > 0:
+                    print("Movie data already exists in vector store.")
+                    return
+            except Exception as e:
+                print(f"Warning: Could not check existing data: {e}")
 
             # Load movie data
-            with open('movies.json', 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            try:
+                with open('movies.json', 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except FileNotFoundError:
+                print("Warning: movies.json not found. Movie recommendations will not be available.")
+                return
+            except Exception as e:
+                print(f"Warning: Could not load movies.json: {e}")
+                return
 
             # Convert to list if single movie
             if isinstance(data, dict):
@@ -845,37 +863,49 @@ class MayaChatbot:
             # Create LangChain documents
             documents = []
             for i, item in enumerate(data):
-                # Combine description, title, and genres for content
-                content = f"{item['description']} {item['title']} {item['genres']}"
-                
-                # Prepare metadata
-                metadata = {
-                    'title': item['title'],
-                    'genres': ', '.join(item['genres']) if isinstance(item['genres'], list) else str(item['genres']),
-                    'ratings': item.get('ratings', None),
-                    'comments': '\n'.join(item.get('comments', [])) if isinstance(item.get('comments', []), list) else str(item.get('comments', '')),
-                    'countries': item.get('countries', None),
-                    'year': item.get('year', None),
-                    'description': item['description'],
-                    'doc_id': str(i)
-                }
-                
-                # Create Document object
-                doc = Document(
-                    page_content=content,
-                    metadata=metadata
-                )
-                documents.append(doc)
+                try:
+                    # Combine description, title, and genres for content
+                    content = f"{item.get('description', '')} {item.get('title', '')} {item.get('genres', '')}"
+                    
+                    # Prepare metadata
+                    metadata = {
+                        'title': item.get('title', f'Movie {i}'),
+                        'genres': ', '.join(item.get('genres', [])) if isinstance(item.get('genres', []), list) else str(item.get('genres', '')),
+                        'ratings': item.get('ratings', None),
+                        'comments': '\n'.join(item.get('comments', [])) if isinstance(item.get('comments', []), list) else str(item.get('comments', '')),
+                        'countries': item.get('countries', None),
+                        'year': item.get('year', None),
+                        'description': item.get('description', ''),
+                        'doc_id': str(i)
+                    }
+                    
+                    # Create Document object
+                    doc = Document(
+                        page_content=content,
+                        metadata=metadata
+                    )
+                    documents.append(doc)
+                except Exception as e:
+                    print(f"Warning: Could not process movie {i}: {e}")
+                    continue
 
             # Add documents to vector store
-            self.vectorstore.add_documents(documents)
-            print(f"Added {len(documents)} movie documents to vector store.")
+            if documents:
+                self.vectorstore.add_documents(documents)
+                print(f"Added {len(documents)} movie documents to vector store.")
+            else:
+                print("Warning: No movie documents to add.")
             
         except Exception as e:
             print(f"Error initializing movie database: {e}")
             # Fallback to empty vector store
-            self.vectorstore = Chroma(
-                collection_name="azure_openai_movie_collection",
-                embedding_function=self.embeddings,
-                persist_directory="./chroma_db"
-            )
+            try:
+                self.vectorstore = Chroma(
+                    collection_name="azure_openai_movie_collection",
+                    embedding_function=self.embeddings,
+                    persist_directory="./chroma_db"
+                )
+                print("Fallback: Empty vector store created.")
+            except Exception as fallback_error:
+                print(f"Critical error: Could not create fallback vector store: {fallback_error}")
+                self.vectorstore = None

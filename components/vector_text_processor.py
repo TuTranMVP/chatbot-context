@@ -90,24 +90,27 @@ class VectorTextProcessor:
             self.embeddings = AzureOpenAIEmbeddings(
                 api_key="sk-8YouTg_4fia-c-LA0yeEXQ",
                 azure_endpoint="https://aiportalapi.stu-platform.live/jpe",
-                api_version="2023-05-15",
+                api_version="2024-02-01",  # Updated to newer API version
                 model="text-embedding-3-small",
-                azure_deployment="text-embedding-3-small"
+                azure_deployment="text-embedding-3-small",
+                chunk_size=1000,  # Optimize chunk size for embeddings
+                max_retries=3,    # Add retry logic
+                request_timeout=30  # Add timeout
             )
-            logger.info("✅ Azure OpenAI embeddings initialized")
+            logger.info("✅ Azure OpenAI embeddings initialized with text-embedding-3-small")
         except Exception as e:
             logger.error(f"Failed to initialize Azure embeddings: {e}")
             raise Exception(f"Azure OpenAI embeddings required but failed to initialize: {e}")
     
     def _initialize_langchain_vectorstore(self):
-        """Initialize LangChain Chroma vector store"""
+        """Initialize LangChain Chroma vector store with Azure OpenAI embeddings"""
         try:
             self.vectorstore = Chroma(
-                collection_name="additional_info_collection",
-                embedding_function=self.embeddings if hasattr(self, 'embeddings') else None,
+                collection_name="azure_openai_embeddings_collection",
+                embedding_function=self.embeddings,
                 persist_directory=self.db_path
             )
-            logger.info("� LangChain Chroma vector store initialized")
+            logger.info("✅ LangChain Chroma vector store initialized with Azure OpenAI embeddings")
         except Exception as e:
             logger.error(f"Failed to initialize LangChain vector store: {e}")
             raise
@@ -145,13 +148,15 @@ class VectorTextProcessor:
         return chunks
    
     def create_embedding(self, text: str) -> Optional[List[float]]:
-        """Create embedding using Azure OpenAI only"""
+        """Create embedding using Azure OpenAI text-embedding-3-small"""
         if not text.strip():
             return None
            
         try:
-            # Use Azure OpenAI embeddings only
-            return self.embeddings.embed_query(text)
+            # Use Azure OpenAI embeddings with optimized text preprocessing
+            cleaned_text = text.strip().replace('\n', ' ').replace('\r', ' ')
+            embedding = self.embeddings.embed_query(cleaned_text)
+            return embedding
            
         except Exception as e:
             logger.error(f"Azure OpenAI embedding creation failed: {e}")
@@ -464,11 +469,12 @@ class VectorTextProcessor:
                 count = 0
            
             return {
-                "collection_name": "azure_openai_1536_collection",
+                "collection_name": "azure_openai_embeddings_collection",
                 "document_count": count,
                 "db_path": self.db_path,
-                "embedding_method": "Azure OpenAI",
+                "embedding_method": "Azure OpenAI text-embedding-3-small",
                 "vectorstore_type": "LangChain Chroma",
+                "embedding_dimension": self.EMBEDDING_DIMENSION,
                 "caching_enabled": self.enable_caching,
                 "max_workers": self.max_workers
             }
@@ -480,11 +486,12 @@ class VectorTextProcessor:
     def get_performance_stats(self) -> Dict[str, Any]:
         """Lấy performance statistics"""
         return {
-            "embedding_method": "Azure OpenAI",
+            "embedding_method": "Azure OpenAI text-embedding-3-small",
             "vectorstore_type": "LangChain Chroma",
             "supported_formats": list(self.SUPPORTED_EXTENSIONS),
             "chunk_size": self.DEFAULT_CHUNK_SIZE,
-            "embedding_dimension": self.EMBEDDING_DIMENSION
+            "embedding_dimension": self.EMBEDDING_DIMENSION,
+            "api_version": "2024-02-01"
         }
     
     def search_similar_documents(self, query: str, k: int = 5, threshold: float = 0.7) -> List[Tuple[Document, float]]:
