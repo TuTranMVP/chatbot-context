@@ -786,6 +786,7 @@ def render_duolingo_css():
     
     /* Chat mode header styling */
     .chat-mode-header {
+        display: none;
         background: linear-gradient(135deg, #2c2c54 0%, #40407a 100%);
         border-radius: 20px;
         padding: 1.2rem;
@@ -901,6 +902,7 @@ def render_duolingo_css():
     
     /* Voice mode header styling */
     .voice-mode-header {
+        display: none;
         background: linear-gradient(135deg, #2c2c54 0%, #40407a 100%);
         border-radius: 20px;
         padding: 1.2rem;
