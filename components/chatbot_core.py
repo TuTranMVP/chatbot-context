@@ -696,14 +696,10 @@ class MayaChatbot:
             # Fallback to regular response with user-friendly error handling
             fallback_response = response.choices[0].message.content
             
-            # If no response content, provide a meaningful message
             if not fallback_response:
                 fallback_response = self._get_default_error_message()
             else:
-                # Check if the response contains error indicators and rephrase if needed
-                error_indicators = ['error', 'failed', 'exception', 'traceback', 'unable to', 'could not']
-                if any(indicator in fallback_response.lower() for indicator in error_indicators):
-                    fallback_response = self._rephrase_error_message(fallback_response)
+                fallback_response = self._rephrase_error_message(fallback_response)
 
             # Add assistant response to conversation history
             self.messages.append(
@@ -985,7 +981,7 @@ class MayaChatbot:
         """Rephrase technical error messages into user-friendly messages using AI"""
         try:
             rephrase_prompt = f"""
-            You are Maya, a helpful company policy assistant. Rephrase the following technical error message into a friendly, user-friendly message that:
+            You are a helpful company policy assistant. Rephrase the following technical error message into a friendly, user-friendly message that:
             1. Apologizes for the inconvenience
             2. Explains what happened in simple terms
             3. Suggests what the user can do next
