@@ -122,12 +122,15 @@ class MayaChatbot:
     def _get_azure_embeddings(_self):
         """Initialize and cache Azure OpenAI embeddings"""
         return AzureOpenAIEmbeddings(
-            api_key="sk-8YouTg_4fia-c-LA0yeEXQ",
-            azure_endpoint="https://aiportalapi.stu-platform.live/jpe",
-            api_version="2023-05-15",
-            model="text-embedding-3-small",
-            azure_deployment="text-embedding-3-small"
-        )
+                api_key="sk-8YouTg_4fia-c-LA0yeEXQ",
+                azure_endpoint="https://aiportalapi.stu-platform.live/jpe",
+                api_version="2024-02-01",  # Updated to newer API version
+                model="text-embedding-3-small",
+                azure_deployment="text-embedding-3-small",
+                chunk_size=1000,  # Optimize chunk size for embeddings
+                max_retries=3,    # Add retry logic
+                request_timeout=30  # Add timeout
+            )
 
     def generate_guide_template(
         self,
@@ -574,23 +577,29 @@ class MayaChatbot:
             print(f"Processing user question: {user_question}")
             print(f"Current conversation history: {filenames}")
 
+            # Ensure additional_vectorstore is initialized with the correct collection name
             if not hasattr(self, 'additional_vectorstore'):
                 self.additional_vectorstore = Chroma(
-                    collection_name="azure_openai_1536_collection",
+                    collection_name="azure_openai_embeddings_collection",  # Match VectorTextProcessor
                     embedding_function=self.additional_embeddings,
                     persist_directory="./vector_chroma_db"
                 )
-                
+
             # Use similarity_search_with_score and filter by threshold
             docs_with_scores = self.additional_vectorstore.similarity_search_with_score(
                 user_question,
                 k=5
             )
+
+            print(f"Found {len(docs_with_scores)} documents with scores")
+            print("Documents with scores:")
+            for doc, score in docs_with_scores:
+                print(f"Document: {doc.page_content}, Score: {score}")
             
             # Filter by similarity threshold (convert distance to similarity: similarity = 1 - distance)
             filtered_docs = [
                 (doc, score) for doc, score in docs_with_scores 
-                if (1 - score) >= self.similarity_threshold
+                if (score) >= 0.5
             ]
 
             print(f"Filtered documents: {len(filtered_docs)} found")
