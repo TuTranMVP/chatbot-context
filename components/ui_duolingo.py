@@ -230,57 +230,7 @@ def get_voice_status():
 
 def render_quick_suggestions():
     """Render quick suggestion buttons"""
-    st.markdown('<div class="suggestions-section">', unsafe_allow_html=True)
-    st.markdown(
-        '<h4 class="suggestions-title">💡 Try asking:</h4>',
-        unsafe_allow_html=True,
-    )
-
-    suggestions = [
-        {
-            'icon': '📋',
-            'text': 'Create a guide',
-            'query': 'Create a step-by-step guide',
-        },
-        {
-            'icon': '👥',
-            'text': 'User data',
-            'query': 'Generate user data in JSON format',
-        },
-        {
-            'icon': '🛍️',
-            'text': 'Product data',
-            'query': 'Generate product data for e-commerce',
-        },
-        {
-            'icon': '📈',
-            'text': 'Analytics',
-            'query': 'Create sample analytics data',
-        },
-        {
-            'icon': '🔧',
-            'text': 'Setup guide',
-            'query': 'Help me set up a development environment',
-        },
-        {'icon': '💡', 'text': 'Ideas', 'query': 'Give me project ideas'},
-    ]
-
-    # Create a 2x3 grid of suggestion buttons
-    for i in range(0, len(suggestions), 3):
-        cols = st.columns(3)
-        for j, col in enumerate(cols):
-            if i + j < len(suggestions):
-                suggestion = suggestions[i + j]
-                with col:
-                    if st.button(
-                        f'{suggestion["icon"]} {suggestion["text"]}',
-                        key=f'suggestion_{i + j}',
-                        use_container_width=True,
-                    ):
-                        st.session_state['user_input'] = suggestion['query']
-                        st.session_state['suggestion_clicked'] = True
-
-    st.markdown('</div>', unsafe_allow_html=True)
+    pass
 
 
 def render_duolingo_mode_selector():
@@ -880,6 +830,188 @@ def render_duolingo_css():
         .duolingo-landing {
             padding: 2rem 1rem !important;
         }
+        
+        /* Mobile optimization for Streamlit horizontal blocks */
+        .stHorizontalBlock {
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+        }
+        
+        .stHorizontalBlock > div {
+            width: 100% !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Mobile optimization for column layouts */
+        .stColumns {
+            flex-direction: column !important;
+            gap: 0.5rem !important;
+        }
+        
+        .stColumns > div {
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* Mobile header optimization */
+        .stColumns:has(.stMarkdown h2) > div {
+            text-align: center !important;
+            margin-bottom: 1rem !important;
+        }
+        
+        .stColumns:has(.stMarkdown h2) .stButton > button {
+            width: 100% !important;
+            margin: 0.25rem 0 !important;
+            font-size: 0.9rem !important;
+            padding: 0.7rem 1rem !important;
+        }
+        
+        /* Stack navigation buttons vertically on mobile */
+        div[data-testid="column"]:has(button[key*="home"]) {
+            order: 1 !important;
+        }
+        
+        div[data-testid="column"]:has(.stMarkdown h2) {
+            order: 2 !important;
+            margin: 1rem 0 !important;
+        }
+        
+        div[data-testid="column"]:has(button[key*="files"]) {
+            order: 3 !important;
+        }
+        
+        div[data-testid="column"]:has(button[key*="voice"]) {
+            order: 4 !important;
+        }
+        
+        div[data-testid="column"]:has(button[key*="chat"]) {
+            order: 4 !important;
+        }
+        
+        /* Hero stats mobile optimization */
+        .hero-stats {
+                align-items: center !important;
+            gap: 1rem !important;
+        }
+        
+        .stat-item {
+            width: 80% !important;
+            max-width: 200px !important;
+        }
+        
+        /* Voice orb mobile optimization */
+        .voice-orb-duolingo {
+            width: 100px !important;
+            height: 100px !important;
+        }
+        
+        .orb-icon {
+            font-size: 2.5rem !important;
+        }
+        
+        /* Landing page button optimization */
+        .stColumns > div .stButton > button {
+            min-height: 2.5rem !important;
+            font-size: 0.95rem !important;
+            white-space: nowrap !important;
+        }
+        
+        /* Mobile chat optimization */
+        .chat-container {
+            max-height: 400px !important;
+            padding: 0.5rem 0 !important;
+        }
+        
+        .stChatMessage {
+            margin: 0.3rem 0 !important;
+            padding: 0.8rem !important;
+            border-radius: 10px !important;
+        }
+        
+        /* Mobile card optimization */
+        .data-card-duolingo, .guide-card-duolingo {
+            padding: 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+        
+        .data-header, .guide-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 0.5rem !important;
+        }
+        
+        .data-icon, .guide-icon {
+            font-size: 1.5rem !important;
+            align-self: center !important;
+        }
+        
+        .data-title, .guide-title {
+            font-size: 1.1rem !important;
+            text-align: center !important;
+        }
+        
+        .data-meta, .guide-meta {
+            text-align: center !important;
+            font-size: 0.8rem !important;
+        }
+        
+        /* Mobile welcome message */
+        .welcome-message {
+            padding: 2rem 1rem !important;
+            margin: 1rem 0 !important;
+        }
+        
+        .welcome-message .maya-mascot {
+            font-size: 3rem !important;
+        }
+        
+        .welcome-message h3 {
+            font-size: 1.3rem !important;
+        }
+        
+        .welcome-message p {
+            font-size: 1rem !important;
+        }
+        
+        /* Mobile status card */
+        .status-card {
+            padding: 1rem !important;
+            min-width: 150px !important;
+        }
+        
+        .status-icon {
+            font-size: 1.5rem !important;
+        }
+        
+        .status-text {
+            font-size: 1rem !important;
+        }
+        
+        /* Mobile dataframe */
+        .stDataFrame {
+            font-size: 0.8rem !important;
+        }
+    }
+    
+    /* Tablet optimization */
+    @media (max-width: 1024px) and (min-width: 769px) {
+        .stColumns:has(.stMarkdown h2) {
+            flex-wrap: wrap !important;
+        }
+        
+        .stColumns:has(.stMarkdown h2) > div:nth-child(1),
+        .stColumns:has(.stMarkdown h2) > div:nth-child(4) {
+            width: 25% !important;
+        }
+        
+        .stColumns:has(.stMarkdown h2) > div:nth-child(2) {
+            width: 50% !important;
+        }
+        
+        .stColumns:has(.stMarkdown h2) > div:nth-child(3) {
+            width: 25% !important;
+        }
     }
     
     /* Hide Streamlit menu */
@@ -949,19 +1081,32 @@ def render_duolingo_css():
     
     .data-header, .guide-header {
         color: #e0e0e0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 1rem !important;
     }
     
     .data-title, .guide-title {
         color: #58cc02 !important;
         font-weight: 600 !important;
+        font-size: 1.2rem !important;
+        margin: 0 !important;
     }
     
     .data-meta, .guide-meta {
         color: #b0b0b0 !important;
+        font-size: 0.9rem !important;
+        margin: 0.5rem 0 0 0 !important;
     }
     
     .data-icon, .guide-icon {
         filter: drop-shadow(0 2px 4px rgba(88, 204, 2, 0.3)) !important;
+        font-size: 2rem !important;
+        flex-shrink: 0 !important;
+    }
+    
+    .data-info, .guide-info {
+        flex: 1 !important;
     }
     
     /* Dark theme success messages */
