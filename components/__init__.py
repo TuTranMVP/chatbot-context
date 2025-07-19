@@ -27,12 +27,14 @@ __version__ = '1.0.0'
 try:
     from .chatbot_core import MayaChatbot
     from .tts_interface import TTSInterface
-    from .ui_components import (
-        render_custom_css,
-        render_mode_selector,
-        render_sidebar_info,
-        render_text_mode_ui,
-        render_voice_mode_ui,
+    from .ui_duolingo import (
+        render_duolingo_css,
+        display_duolingo_data,
+        display_duolingo_guide,
+        render_duolingo_chat_mode,
+        render_duolingo_landing,
+        render_duolingo_voice_mode,
+        render_quick_suggestions,
     )
     from .voice_interface import VoiceInterface, check_microphone_permission
 
@@ -41,11 +43,13 @@ try:
         'VoiceInterface',
         'check_microphone_permission',
         'TTSInterface',
-        'render_text_mode_ui',
-        'render_voice_mode_ui',
-        'render_mode_selector',
-        'render_sidebar_info',
-        'render_custom_css',
+        'render_duolingo_css',
+        'display_duolingo_data',
+        'display_duolingo_guide',
+        'render_duolingo_chat_mode',
+        'render_duolingo_landing',
+        'render_duolingo_voice_mode',
+        'render_quick_suggestions',
     ]
 
 except ImportError as e:

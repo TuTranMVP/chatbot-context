@@ -49,15 +49,29 @@ def main():
 
     # Initialize components in session state
     if 'chatbot' not in st.session_state:
-        st.session_state.chatbot = MayaChatbot()
+        try:
+            with st.spinner('🤖 Initializing Maya...'):
+                st.session_state.chatbot = MayaChatbot()
+        except Exception as e:
+            st.error(f"❌ Failed to initialize Maya chatbot: {e}")
+            st.error("Please check your configuration and try refreshing the page.")
+            st.stop()
 
     if 'voice_interface' not in st.session_state:
-        st.session_state.voice_interface = VoiceInterface(
-            st.session_state.chatbot
-        )
+        try:
+            st.session_state.voice_interface = VoiceInterface(
+                st.session_state.chatbot
+            )
+        except Exception as e:
+            st.error(f"❌ Failed to initialize voice interface: {e}")
+            st.session_state.voice_interface = None
 
     if 'tts_interface' not in st.session_state:
-        st.session_state.tts_interface = TTSInterface()
+        try:
+            st.session_state.tts_interface = TTSInterface()
+        except Exception as e:
+            st.error(f"❌ Failed to initialize TTS interface: {e}")
+            st.session_state.tts_interface = None
 
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
