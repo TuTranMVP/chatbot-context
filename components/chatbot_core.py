@@ -695,11 +695,6 @@ class MayaChatbot:
 
             # Fallback to regular response with user-friendly error handling
             fallback_response = response.choices[0].message.content
-            
-            if not fallback_response:
-                fallback_response = self._get_default_error_message()
-            else:
-                fallback_response = self._rephrase_error_message(fallback_response)
 
             # Add assistant response to conversation history
             self.messages.append(
