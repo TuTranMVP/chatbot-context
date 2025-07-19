@@ -10,18 +10,7 @@ import hashlib
 import time
 import warnings
 import logging
-from typi    def _initialize_langchain_vectorstore(self):
-        """Initialize LangChain Chroma vector store"""
-        try:
-            self.vectorstore = Chroma(
-                collection_name="azure_openai_1536_collection",
-                embedding_function=self.embeddings,
-                persist_directory=self.db_path
-            )
-            logger.info("✅ LangChain Chroma vector store initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize LangChain vector store: {e}")
-            raisest, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 from functools import lru_cache
  
@@ -72,7 +61,7 @@ class VectorTextProcessor:
    
     def __init__(self,
                  db_path: str = "./vector_chroma_db",
-                 embedding_model: str = "all-MiniLM-L6-v2",
+                 embedding_model: str = "text-embedding-3-small",
                  enable_caching: bool = True,
                  max_workers: int = 4):
         """
