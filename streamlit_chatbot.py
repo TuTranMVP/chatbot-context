@@ -137,23 +137,6 @@ def main():
                     st.rerun()
 
     elif st.session_state.current_mode == 'chat':
-        # Top navigation with back to landing
-        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
-        with col1:
-            if st.button('🏠 Home', key='home_from_chat'):
-                st.session_state.current_mode = 'landing'
-                st.rerun()
-        with col2:
-            st.markdown('<h2 style="text-align: center; margin: 0;">💬 Chat Mode</h2>', unsafe_allow_html=True)
-        with col3:
-            if st.button('📁 Files', key='to_files_from_chat'):
-                st.session_state.current_mode = 'files'
-                st.rerun()
-        with col4:
-            if st.button('🎤 Voice', key='to_voice_from_chat'):
-                st.session_state.current_mode = 'voice'
-                st.rerun()
-        
         render_duolingo_chat_mode()
         
         # Handle user input

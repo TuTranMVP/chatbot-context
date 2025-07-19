@@ -41,6 +41,33 @@ def render_duolingo_landing():
 
 def render_duolingo_chat_mode():
     """Render Duolingo-inspired chat interface"""
+    
+    # Header navigation for chat mode
+    st.markdown('<div class="chat-mode-header">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    
+    with col1:
+        if st.button('🏠 Home', key='home_chat_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'landing'
+            st.rerun()
+    
+    with col2:
+        if st.button('📁 Files', key='files_chat_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'files'
+            st.rerun()
+    
+    with col3:
+        st.markdown(
+            '<div class="chat-header-title">💬 Chat Mode</div>',
+            unsafe_allow_html=True,
+        )
+    
+    with col4:
+        if st.button('🎤 Voice', key='voice_chat_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'voice'
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Chat history
     if st.session_state.get('chat_history'):
@@ -93,25 +120,33 @@ def render_duolingo_chat_mode():
 
 def render_duolingo_voice_mode():
     """Render Duolingo-inspired voice interface"""
-
-    # Top navigation
-    col1, col2, col3 = st.columns([1, 2, 1])
-
+    
+    # Header navigation for voice mode
+    st.markdown('<div class="voice-mode-header">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    
     with col1:
-        if st.button('🏠', help='Home', key='home_voice_btn'):
-            st.session_state['current_view'] = 'landing'
+        if st.button('🏠 Home', key='home_voice_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'landing'
             st.rerun()
 
     with col2:
+        if st.button('📁 Files', key='files_voice_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'files'
+            st.rerun()
+
+    with col3:
         st.markdown(
-            '<div class="voice-header">🎤 Voice Chat</div>',
+            '<div class="voice-header-title">🎤 Voice Mode</div>',
             unsafe_allow_html=True,
         )
 
-    with col3:
-        if st.button('💬', help='Text Mode', key='text_btn'):
-            st.session_state['interface_mode'] = 'text'
+    with col4:
+        if st.button('💬 Chat', key='chat_voice_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'chat'
             st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # Voice status with playful design
     status = get_voice_status()
@@ -632,7 +667,7 @@ def render_duolingo_css():
         padding: 3rem 2rem;
         background: linear-gradient(135deg, #2c2c54 0%, #40407a 100%);
         border-radius: 20px;
-        margin: 2rem 0;
+        margin: 0.5rem 0;
         border: 2px solid #58cc02;
         animation: slideIn 0.8s ease-out;
         box-shadow: 0 8px 25px rgba(0,0,0,0.3);
@@ -749,6 +784,220 @@ def render_duolingo_css():
         font-size: 1.1rem;
     }
     
+    /* Chat mode header styling */
+    .chat-mode-header {
+        background: linear-gradient(135deg, #2c2c54 0%, #40407a 100%);
+        border-radius: 20px;
+        padding: 1.2rem;
+        margin-bottom: 1.5rem;
+        border: 2px solid rgba(88, 204, 2, 0.3);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        animation: headerSlideIn 0.6s ease-out;
+    }
+    
+    .chat-mode-header:hover {
+        border-color: rgba(88, 204, 2, 0.5);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        transform: translateY(-2px);
+    }
+    
+    .chat-header-title {
+        text-align: center;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #58cc02;
+        padding: 0.8rem 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        background: linear-gradient(135deg, #58cc02 0%, #89e219 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: slideIn 0.8s ease-out 0.2s both;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+    }
+    
+    /* Target specific Streamlit column class for chat mode header */
+    .chat-mode-header .stColumn.st-emotion-cache-cbquie.e1msl4mp1 {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.5rem !important;
+    }
+    
+    /* Alternative selectors for different Streamlit versions */
+    .chat-mode-header [data-testid="column"] {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.5rem !important;
+    }
+    
+    /* Chat mode header buttons */
+    .chat-mode-header .stButton > button {
+        background: linear-gradient(135deg, #58cc02 0%, #89e219 100%) !important;
+        color: white !important;
+        border: 2px solid transparent !important;
+        border-radius: 15px !important;
+        font-weight: 600 !important;
+        padding: 0.8rem 1.5rem !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        font-size: 1.1rem !important;
+        box-shadow: 0 4px 15px rgba(88, 204, 2, 0.3) !important;
+        min-height: 3rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        animation: slideIn 0.6s ease-out 0.4s both !important;
+        width: 100% !important;
+    }
+    
+    .chat-mode-header .stButton > button:hover {
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 8px 25px rgba(88, 204, 2, 0.4) !important;
+        border-color: #1cb0f6 !important;
+        animation: buttonPop 0.3s ease-in-out !important;
+    }
+    
+    .chat-mode-header .stButton > button:active {
+        transform: translateY(-1px) scale(1.02) !important;
+        transition: all 0.1s ease !important;
+    }
+    
+    /* Specific header button colors */
+    .chat-mode-header button[key*="home"] {
+        background: linear-gradient(135deg, #ff4757 0%, #ff6b7a 100%) !important;
+        box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3) !important;
+    }
+    
+    .chat-mode-header button[key*="home"]:hover {
+        box-shadow: 0 8px 25px rgba(255, 71, 87, 0.4) !important;
+        border-color: #ff3742 !important;
+    }
+    
+    .chat-mode-header button[key*="voice"] {
+        background: linear-gradient(135deg, #1cb0f6 0%, #00b4d8 100%) !important;
+        box-shadow: 0 4px 15px rgba(28, 176, 246, 0.3) !important;
+    }
+    
+    .chat-mode-header button[key*="voice"]:hover {
+        box-shadow: 0 8px 25px rgba(28, 176, 246, 0.4) !important;
+        border-color: #0099cc !important;
+    }
+    
+    .chat-mode-header button[key*="files"] {
+        background: linear-gradient(135deg, #ffa502 0%, #ffb142 100%) !important;
+        box-shadow: 0 4px 15px rgba(255, 165, 2, 0.3) !important;
+    }
+    
+    .chat-mode-header button[key*="files"]:hover {
+        box-shadow: 0 8px 25px rgba(255, 165, 2, 0.4) !important;
+        border-color: #e6940a !important;
+    }
+    
+    /* Voice mode header styling */
+    .voice-mode-header {
+        background: linear-gradient(135deg, #2c2c54 0%, #40407a 100%);
+        border-radius: 20px;
+        padding: 1.2rem;
+        margin-bottom: 1.5rem;
+        border: 2px solid rgba(28, 176, 246, 0.3);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        animation: headerSlideIn 0.6s ease-out;
+    }
+    
+    .voice-mode-header:hover {
+        border-color: rgba(28, 176, 246, 0.5);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        transform: translateY(-2px);
+    }
+    
+    .voice-header-title {
+        text-align: center;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #1cb0f6;
+        padding: 0.8rem 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        background: linear-gradient(135deg, #1cb0f6 0%, #00b4d8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: slideIn 0.8s ease-out 0.2s both;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+    }
+    
+    /* Voice mode header buttons */
+    .voice-mode-header .stButton > button {
+        background: linear-gradient(135deg, #1cb0f6 0%, #00b4d8 100%) !important;
+        color: white !important;
+        border: 2px solid transparent !important;
+        border-radius: 15px !important;
+        font-weight: 600 !important;
+        padding: 0.8rem 1.5rem !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        font-size: 1.1rem !important;
+        box-shadow: 0 4px 15px rgba(28, 176, 246, 0.3) !important;
+        min-height: 3rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        animation: slideIn 0.6s ease-out 0.4s both !important;
+        width: 100% !important;
+    }
+    
+    .voice-mode-header .stButton > button:hover {
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 8px 25px rgba(28, 176, 246, 0.4) !important;
+        border-color: #58cc02 !important;
+        animation: buttonPop 0.3s ease-in-out !important;
+    }
+    
+    .voice-mode-header .stButton > button:active {
+        transform: translateY(-1px) scale(1.02) !important;
+        transition: all 0.1s ease !important;
+    }
+    
+    /* Specific voice header button colors */
+    .voice-mode-header button[key*="home"] {
+        background: linear-gradient(135deg, #ff4757 0%, #ff6b7a 100%) !important;
+        box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3) !important;
+    }
+    
+    .voice-mode-header button[key*="home"]:hover {
+        box-shadow: 0 8px 25px rgba(255, 71, 87, 0.4) !important;
+        border-color: #ff3742 !important;
+    }
+    
+    .voice-mode-header button[key*="files"] {
+        background: linear-gradient(135deg, #ffa502 0%, #ffb142 100%) !important;
+        box-shadow: 0 4px 15px rgba(255, 165, 2, 0.3) !important;
+    }
+    
+    .voice-mode-header button[key*="files"]:hover {
+        box-shadow: 0 8px 25px rgba(255, 165, 2, 0.4) !important;
+        border-color: #e6940a !important;
+    }
+    
+    .voice-mode-header button[key*="chat"] {
+        background: linear-gradient(135deg, #58cc02 0%, #89e219 100%) !important;
+        box-shadow: 0 4px 15px rgba(88, 204, 2, 0.3) !important;
+    }
+    
+    .voice-mode-header button[key*="chat"]:hover {
+        box-shadow: 0 8px 25px rgba(88, 204, 2, 0.4) !important;
+        border-color: #45a002 !important;
+    }
+    
     /* Voice action center */
     .voice-action-center {
         text-align: center;
@@ -831,9 +1080,217 @@ def render_duolingo_css():
             padding: 2rem 1rem !important;
         }
         
+        /* Mobile chat mode header optimization */
+        .chat-mode-header {
+            padding: 0.8rem !important;
+            margin-bottom: 1rem !important;
+            border-radius: 15px !important;
+        }
+        
+        .chat-header-title {
+            font-size: 1.1rem !important;
+            padding: 0.5rem 0 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+        
+        /* Mobile header buttons optimization */
+        .chat-mode-header .stButton > button {
+            padding: 0.6rem 0.8rem !important;
+            font-size: 1rem !important;
+            border-radius: 12px !important;
+            min-height: 2.5rem !important;
+        }
+        
+        .chat-mode-header .stButton > button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(88, 204, 2, 0.4) !important;
+        }
+        
+        /* Specific mobile button optimizations */
+        .chat-mode-header button[key*="home"] {
+            font-size: 1.2rem !important;
+            padding: 0.5rem !important;
+        }
+        
+        .chat-mode-header button[key*="voice"] {
+            font-size: 1.2rem !important;
+            padding: 0.5rem !important;
+        }
+        
+        .chat-mode-header button[key*="files"] {
+            font-size: 1rem !important;
+        }
+        
+        /* Target Streamlit columns in mobile chat header */
+        .chat-mode-header .stColumn.st-emotion-cache-cbquie.e1msl4mp1 {
+            padding: 0.25rem !important;
+        }
+        
+        .chat-mode-header [data-testid="column"] {
+            padding: 0.25rem !important;
+        }
+        
+        /* Mobile voice mode header optimization */
+        .voice-mode-header {
+            padding: 0.8rem !important;
+            margin-bottom: 1rem !important;
+            border-radius: 15px !important;
+            border-color: rgba(28, 176, 246, 0.4) !important;
+        }
+        
+        .voice-header-title {
+            font-size: 1.1rem !important;
+            padding: 0.5rem 0 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            color: #1cb0f6 !important;
+        }
+        
+        /* Mobile voice header buttons optimization */
+        .voice-mode-header .stButton > button {
+            padding: 0.6rem 0.8rem !important;
+            font-size: 1rem !important;
+            border-radius: 12px !important;
+            min-height: 2.5rem !important;
+        }
+        
+        .voice-mode-header .stButton > button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(28, 176, 246, 0.4) !important;
+        }
+        
+        /* Target Streamlit columns in mobile voice header */
+        .voice-mode-header .stColumn.st-emotion-cache-cbquie.e1msl4mp1 {
+            padding: 0.25rem !important;
+        }
+        
+        .voice-mode-header [data-testid="column"] {
+            padding: 0.25rem !important;
+        }
+        
+        /* Mobile voice status card optimization */
+        .voice-status-duolingo {
+            margin: 1rem 0 !important;
+        }
+        
+        .status-card {
+            padding: 1rem 1.5rem !important;
+            min-width: 250px !important;
+            border-radius: 15px !important;
+        }
+        
+        .status-icon {
+            font-size: 1.8rem !important;
+            margin-bottom: 0.3rem !important;
+        }
+        
+        .status-text {
+            font-size: 1rem !important;
+        }
+        
+        /* Mobile voice orb optimization */
+        .voice-action-center {
+            margin: 2rem 0 !important;
+        }
+        
+        .voice-orb-duolingo {
+            width: 100px !important;
+            height: 100px !important;
+            margin-bottom: 0.8rem !important;
+        }
+        
+        .orb-icon {
+            font-size: 2.5rem !important;
+        }
+        
+        .voice-instruction {
+            font-size: 1rem !important;
+            margin-top: 0.5rem !important;
+        }
+        
+        /* Mobile voice control buttons */
+        .voice-control-buttons {
+            margin: 1.5rem 0 !important;
+        }
+        
+        .voice-control-buttons .stButton > button {
+            padding: 0.8rem 1rem !important;
+            font-size: 1rem !important;
+            min-height: 2.5rem !important;
+            border-radius: 12px !important;
+        }
+        
+        /* Compact header for very small screens */
+        @media (max-width: 480px) {
+            .chat-mode-header {
+                padding: 0.5rem !important;
+                margin-bottom: 0.8rem !important;
+            }
+            
+            .chat-header-title {
+                font-size: 1rem !important;
+                padding: 0.3rem 0 !important;
+            }
+            
+            .chat-mode-header .stButton > button {
+                font-size: 0.9rem !important;
+                padding: 0.4rem 0.6rem !important;
+                min-height: 2rem !important;
+            }
+            
+            .chat-mode-header button[key*="home"],
+            .chat-mode-header button[key*="voice"] {
+                font-size: 1rem !important;
+                padding: 0.4rem !important;
+            }
+            
+            /* Voice mode compact */
+            .voice-mode-header {
+                padding: 0.5rem !important;
+                margin-bottom: 0.8rem !important;
+            }
+            
+            .voice-header-title {
+                font-size: 1rem !important;
+                padding: 0.3rem 0 !important;
+            }
+            
+            .voice-mode-header .stButton > button {
+                font-size: 0.9rem !important;
+                padding: 0.4rem 0.6rem !important;
+                min-height: 2rem !important;
+            }
+            
+            /* Voice orb ultra compact */
+            .voice-orb-duolingo {
+                width: 80px !important;
+                height: 80px !important;
+            }
+            
+            .orb-icon {
+                font-size: 2rem !important;
+            }
+            
+            .status-card {
+                padding: 0.8rem 1rem !important;
+                min-width: 200px !important;
+                font-size: 0.9rem !important;
+            }
+            
+            .status-icon {
+                font-size: 1.5rem !important;
+            }
+            
+            .voice-instruction {
+                font-size: 0.9rem !important;
+            }
+        }
+        
         /* Mobile optimization for Streamlit horizontal blocks */
         .stHorizontalBlock {
-            flex-direction: column !important;
             gap: 0.5rem !important;
         }
         
@@ -854,27 +1311,9 @@ def render_duolingo_css():
             padding: 0 !important;
         }
         
-        /* Mobile header optimization */
-        .stColumns:has(.stMarkdown h2) > div {
-            text-align: center !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .stColumns:has(.stMarkdown h2) .stButton > button {
-            width: 100% !important;
-            margin: 0.25rem 0 !important;
-            font-size: 0.9rem !important;
-            padding: 0.7rem 1rem !important;
-        }
-        
         /* Stack navigation buttons vertically on mobile */
         div[data-testid="column"]:has(button[key*="home"]) {
             order: 1 !important;
-        }
-        
-        div[data-testid="column"]:has(.stMarkdown h2) {
-            order: 2 !important;
-            margin: 1rem 0 !important;
         }
         
         div[data-testid="column"]:has(button[key*="files"]) {
@@ -996,21 +1435,21 @@ def render_duolingo_css():
     
     /* Tablet optimization */
     @media (max-width: 1024px) and (min-width: 769px) {
-        .stColumns:has(.stMarkdown h2) {
-            flex-wrap: wrap !important;
+        /* Chat header tablet optimization */
+        .chat-mode-header {
+            padding: 1rem;
+            margin-bottom: 1.2rem;
         }
         
-        .stColumns:has(.stMarkdown h2) > div:nth-child(1),
-        .stColumns:has(.stMarkdown h2) > div:nth-child(4) {
-            width: 25% !important;
+        .chat-header-title {
+            font-size: 1.2rem;
+            padding: 0.6rem 0;
         }
         
-        .stColumns:has(.stMarkdown h2) > div:nth-child(2) {
-            width: 50% !important;
-        }
-        
-        .stColumns:has(.stMarkdown h2) > div:nth-child(3) {
-            width: 25% !important;
+        .chat-mode-header .stButton > button {
+            font-size: 1rem !important;
+            padding: 0.7rem 1.2rem !important;
+            min-height: 2.5rem !important;
         }
     }
     
@@ -1137,15 +1576,6 @@ def render_duolingo_css():
         color: #1cb0f6 !important;
     }
     
-    /* Dark theme general text styling */
-    .stMarkdown, .stMarkdown p, .stMarkdown div {
-        color: #e0e0e0 !important;
-    }
-    
-    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown h5, .stMarkdown h6 {
-        color: #58cc02 !important;
-    }
-    
     /* Dark theme voice instruction */
     .voice-instruction {
         color: #b0b0b0 !important;
@@ -1189,10 +1619,6 @@ def render_duolingo_css():
     /* Dark theme sidebar styling */
     .css-1d391kg {
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
-    }
-    
-    .css-1d391kg .stMarkdown {
-        color: #e0e0e0 !important;
     }
     
     /* Dark theme radio buttons */
