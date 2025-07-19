@@ -128,11 +128,23 @@ def render_duolingo_voice_mode():
     with col1:
         if st.button('🏠 Home', key='home_voice_btn', use_container_width=True):
             st.session_state['current_mode'] = 'landing'
+            # Stop voice operations when leaving voice mode
+            if st.session_state.get('voice_mode_active', False):
+                st.session_state['voice_mode_active'] = False
+                if 'voice_interface' in st.session_state and st.session_state.voice_interface:
+                    st.session_state.voice_interface.stop_recording()
+                st.session_state['is_recording'] = False
             st.rerun()
 
     with col2:
         if st.button('📁 Files', key='files_voice_btn', use_container_width=True):
             st.session_state['current_mode'] = 'files'
+            # Stop voice operations when leaving voice mode
+            if st.session_state.get('voice_mode_active', False):
+                st.session_state['voice_mode_active'] = False
+                if 'voice_interface' in st.session_state and st.session_state.voice_interface:
+                    st.session_state.voice_interface.stop_recording()
+                st.session_state['is_recording'] = False
             st.rerun()
 
     with col3:
@@ -144,6 +156,12 @@ def render_duolingo_voice_mode():
     with col4:
         if st.button('💬 Chat', key='chat_voice_btn', use_container_width=True):
             st.session_state['current_mode'] = 'chat'
+            # Stop voice operations when leaving voice mode
+            if st.session_state.get('voice_mode_active', False):
+                st.session_state['voice_mode_active'] = False
+                if 'voice_interface' in st.session_state and st.session_state.voice_interface:
+                    st.session_state.voice_interface.stop_recording()
+                st.session_state['is_recording'] = False
             st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -185,6 +203,8 @@ def render_duolingo_voice_mode():
                 '🔇 Stop Speaking', key='stop_voice', use_container_width=True
             ):
                 # Stop TTS logic here
+                if 'tts_interface' in st.session_state and st.session_state.tts_interface:
+                    st.session_state.tts_interface.stop_speaking()
                 st.session_state['is_speaking'] = False
                 st.rerun()
         elif st.session_state.get('is_recording', False):
@@ -194,6 +214,8 @@ def render_duolingo_voice_mode():
                 use_container_width=True,
             ):
                 # Stop recording logic here
+                if 'voice_interface' in st.session_state and st.session_state.voice_interface:
+                    st.session_state.voice_interface.stop_recording()
                 st.session_state['is_recording'] = False
                 st.rerun()
         else:
@@ -203,7 +225,9 @@ def render_duolingo_voice_mode():
                 use_container_width=True,
             ):
                 # Start recording logic here
-                st.session_state['is_recording'] = True
+                if 'voice_interface' in st.session_state and st.session_state.voice_interface:
+                    if st.session_state.voice_interface.start_continuous_recording():
+                        st.session_state['is_recording'] = True
                 st.rerun()
 
     # Chat history (same as text mode but with voice indicators)
@@ -245,6 +269,68 @@ def render_duolingo_voice_mode():
             """,
             unsafe_allow_html=True,
         )
+
+
+def render_duolingo_file_manager_mode():
+    """Render Duolingo-inspired file manager header"""
+    
+    # Header navigation for file manager mode
+    st.markdown('<div class="file-manager-mode-header">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    
+    with col1:
+        if st.button('🏠 Home', key='home_files_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'landing'
+            st.rerun()
+
+    with col2:
+        if st.button('🎤 Voice', key='voice_files_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'voice'
+            st.rerun()
+
+    with col3:
+        st.markdown(
+            '<div class="file-manager-header-title">📁 File Manager</div>',
+            unsafe_allow_html=True,
+        )
+
+    with col4:
+        if st.button('💬 Chat', key='chat_files_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'chat'
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_duolingo_generic_mode(mode_title: str, mode_icon: str):
+    """Render Duolingo-inspired generic mode header"""
+    
+    # Header navigation for generic mode
+    st.markdown('<div class="generic-mode-header">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
+    
+    with col1:
+        if st.button('🏠 Home', key=f'home_{mode_title.lower().replace(" ", "_")}_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'landing'
+            st.rerun()
+
+    with col2:
+        if st.button('📁 Files', key=f'files_{mode_title.lower().replace(" ", "_")}_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'files'
+            st.rerun()
+
+    with col3:
+        st.markdown(
+            f'<div class="generic-header-title">{mode_icon} {mode_title}</div>',
+            unsafe_allow_html=True,
+        )
+
+    with col4:
+        if st.button('💬 Chat', key=f'chat_{mode_title.lower().replace(" ", "_")}_btn', use_container_width=True):
+            st.session_state['current_mode'] = 'chat'
+            st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 def get_voice_status():
@@ -1000,6 +1086,206 @@ def render_duolingo_css():
         border-color: #45a002 !important;
     }
     
+    /* File manager mode header styling */
+    .file-manager-mode-header {
+        display: none;
+        background: linear-gradient(135deg, #2c2c54 0%, #40407a 100%);
+        border-radius: 20px;
+        padding: 1.2rem;
+        margin-bottom: 1.5rem;
+        border: 2px solid rgba(255, 165, 2, 0.3);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        animation: headerSlideIn 0.6s ease-out;
+    }
+    
+    .file-manager-mode-header:hover {
+        border-color: rgba(255, 165, 2, 0.5);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        transform: translateY(-2px);
+    }
+    
+    .file-manager-header-title {
+        text-align: center;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #ffa502;
+        padding: 0.8rem 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        background: linear-gradient(135deg, #ffa502 0%, #ffb142 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: slideIn 0.8s ease-out 0.2s both;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+    }
+    
+    /* File manager mode header buttons */
+    .file-manager-mode-header .stButton > button {
+        background: linear-gradient(135deg, #ffa502 0%, #ffb142 100%) !important;
+        color: white !important;
+        border: 2px solid transparent !important;
+        border-radius: 15px !important;
+        font-weight: 600 !important;
+        padding: 0.8rem 1.5rem !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        font-size: 1.1rem !important;
+        box-shadow: 0 4px 15px rgba(255, 165, 2, 0.3) !important;
+        min-height: 3rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        animation: slideIn 0.6s ease-out 0.4s both !important;
+        width: 100% !important;
+    }
+    
+    .file-manager-mode-header .stButton > button:hover {
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 8px 25px rgba(255, 165, 2, 0.4) !important;
+        border-color: #58cc02 !important;
+        animation: buttonPop 0.3s ease-in-out !important;
+    }
+    
+    .file-manager-mode-header .stButton > button:active {
+        transform: translateY(-1px) scale(1.02) !important;
+        transition: all 0.1s ease !important;
+    }
+    
+    /* Specific file manager header button colors */
+    .file-manager-mode-header button[key*="home"] {
+        background: linear-gradient(135deg, #ff4757 0%, #ff6b7a 100%) !important;
+        box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3) !important;
+    }
+    
+    .file-manager-mode-header button[key*="home"]:hover {
+        box-shadow: 0 8px 25px rgba(255, 71, 87, 0.4) !important;
+        border-color: #ff3742 !important;
+    }
+    
+    .file-manager-mode-header button[key*="voice"] {
+        background: linear-gradient(135deg, #1cb0f6 0%, #00b4d8 100%) !important;
+        box-shadow: 0 4px 15px rgba(28, 176, 246, 0.3) !important;
+    }
+    
+    .file-manager-mode-header button[key*="voice"]:hover {
+        box-shadow: 0 8px 25px rgba(28, 176, 246, 0.4) !important;
+        border-color: #0099cc !important;
+    }
+    
+    .file-manager-mode-header button[key*="chat"] {
+        background: linear-gradient(135deg, #58cc02 0%, #89e219 100%) !important;
+        box-shadow: 0 4px 15px rgba(88, 204, 2, 0.3) !important;
+    }
+    
+    .file-manager-mode-header button[key*="chat"]:hover {
+        box-shadow: 0 8px 25px rgba(88, 204, 2, 0.4) !important;
+        border-color: #45a002 !important;
+    }
+    
+    /* Generic mode header styling for data, guides, etc */
+    .generic-mode-header {
+        display: none;
+        background: linear-gradient(135deg, #2c2c54 0%, #40407a 100%);
+        border-radius: 20px;
+        padding: 1.2rem;
+        margin-bottom: 1.5rem;
+        border: 2px solid rgba(88, 204, 2, 0.3);
+        box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s ease;
+        animation: headerSlideIn 0.6s ease-out;
+    }
+    
+    .generic-mode-header:hover {
+        border-color: rgba(88, 204, 2, 0.5);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        transform: translateY(-2px);
+    }
+    
+    .generic-header-title {
+        text-align: center;
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #58cc02;
+        padding: 0.8rem 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        background: linear-gradient(135deg, #58cc02 0%, #89e219 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: slideIn 0.8s ease-out 0.2s both;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 3rem;
+    }
+    
+    /* Generic mode header buttons */
+    .generic-mode-header .stButton > button {
+        background: linear-gradient(135deg, #58cc02 0%, #89e219 100%) !important;
+        color: white !important;
+        border: 2px solid transparent !important;
+        border-radius: 15px !important;
+        font-weight: 600 !important;
+        padding: 0.8rem 1.5rem !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        font-size: 1.1rem !important;
+        box-shadow: 0 4px 15px rgba(88, 204, 2, 0.3) !important;
+        min-height: 3rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        animation: slideIn 0.6s ease-out 0.4s both !important;
+        width: 100% !important;
+    }
+    
+    .generic-mode-header .stButton > button:hover {
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 8px 25px rgba(88, 204, 2, 0.4) !important;
+        border-color: #1cb0f6 !important;
+        animation: buttonPop 0.3s ease-in-out !important;
+    }
+    
+    .generic-mode-header .stButton > button:active {
+        transform: translateY(-1px) scale(1.02) !important;
+        transition: all 0.1s ease !important;
+    }
+    
+    /* Specific generic header button colors */
+    .generic-mode-header button[key*="home"] {
+        background: linear-gradient(135deg, #ff4757 0%, #ff6b7a 100%) !important;
+        box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3) !important;
+    }
+    
+    .generic-mode-header button[key*="home"]:hover {
+        box-shadow: 0 8px 25px rgba(255, 71, 87, 0.4) !important;
+        border-color: #ff3742 !important;
+    }
+    
+    .generic-mode-header button[key*="files"] {
+        background: linear-gradient(135deg, #ffa502 0%, #ffb142 100%) !important;
+        box-shadow: 0 4px 15px rgba(255, 165, 2, 0.3) !important;
+    }
+    
+    .generic-mode-header button[key*="files"]:hover {
+        box-shadow: 0 8px 25px rgba(255, 165, 2, 0.4) !important;
+        border-color: #e6940a !important;
+    }
+    
+    .generic-mode-header button[key*="voice"] {
+        background: linear-gradient(135deg, #1cb0f6 0%, #00b4d8 100%) !important;
+        box-shadow: 0 4px 15px rgba(28, 176, 246, 0.3) !important;
+    }
+    
+    .generic-mode-header button[key*="voice"]:hover {
+        box-shadow: 0 8px 25px rgba(28, 176, 246, 0.4) !important;
+        border-color: #0099cc !important;
+    }
+    
     /* Voice action center */
     .voice-action-center {
         text-align: center;
@@ -1173,6 +1459,82 @@ def render_duolingo_css():
             padding: 0.25rem !important;
         }
         
+        /* Mobile file manager mode header optimization */
+        .file-manager-mode-header {
+            padding: 0.8rem !important;
+            margin-bottom: 1rem !important;
+            border-radius: 15px !important;
+            border-color: rgba(255, 165, 2, 0.4) !important;
+        }
+        
+        .file-manager-header-title {
+            font-size: 1.1rem !important;
+            padding: 0.5rem 0 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            color: #ffa502 !important;
+        }
+        
+        /* Mobile file manager header buttons optimization */
+        .file-manager-mode-header .stButton > button {
+            padding: 0.6rem 0.8rem !important;
+            font-size: 1rem !important;
+            border-radius: 12px !important;
+            min-height: 2.5rem !important;
+        }
+        
+        .file-manager-mode-header .stButton > button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(255, 165, 2, 0.4) !important;
+        }
+        
+        /* Target Streamlit columns in mobile file manager header */
+        .file-manager-mode-header .stColumn.st-emotion-cache-cbquie.e1msl4mp1 {
+            padding: 0.25rem !important;
+        }
+        
+        .file-manager-mode-header [data-testid="column"] {
+            padding: 0.25rem !important;
+        }
+        
+        /* Mobile generic mode header optimization */
+        .generic-mode-header {
+            padding: 0.8rem !important;
+            margin-bottom: 1rem !important;
+            border-radius: 15px !important;
+        }
+        
+        .generic-header-title {
+            font-size: 1.1rem !important;
+            padding: 0.5rem 0 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+        
+        /* Mobile generic header buttons optimization */
+        .generic-mode-header .stButton > button {
+            padding: 0.6rem 0.8rem !important;
+            font-size: 1rem !important;
+            border-radius: 12px !important;
+            min-height: 2.5rem !important;
+        }
+        
+        .generic-mode-header .stButton > button:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: 0 6px 20px rgba(88, 204, 2, 0.4) !important;
+        }
+        
+        /* Target Streamlit columns in mobile generic header */
+        .generic-mode-header .stColumn.st-emotion-cache-cbquie.e1msl4mp1 {
+            padding: 0.25rem !important;
+        }
+        
+        .generic-mode-header [data-testid="column"] {
+            padding: 0.25rem !important;
+        }
+        
         /* Mobile voice status card optimization */
         .voice-status-duolingo {
             margin: 1rem 0 !important;
@@ -1261,6 +1623,40 @@ def render_duolingo_css():
             }
             
             .voice-mode-header .stButton > button {
+                font-size: 0.9rem !important;
+                padding: 0.4rem 0.6rem !important;
+                min-height: 2rem !important;
+            }
+            
+            /* File manager mode compact */
+            .file-manager-mode-header {
+                padding: 0.5rem !important;
+                margin-bottom: 0.8rem !important;
+            }
+            
+            .file-manager-header-title {
+                font-size: 1rem !important;
+                padding: 0.3rem 0 !important;
+            }
+            
+            .file-manager-mode-header .stButton > button {
+                font-size: 0.9rem !important;
+                padding: 0.4rem 0.6rem !important;
+                min-height: 2rem !important;
+            }
+            
+            /* Generic mode compact */
+            .generic-mode-header {
+                padding: 0.5rem !important;
+                margin-bottom: 0.8rem !important;
+            }
+            
+            .generic-header-title {
+                font-size: 1rem !important;
+                padding: 0.3rem 0 !important;
+            }
+            
+            .generic-mode-header .stButton > button {
                 font-size: 0.9rem !important;
                 padding: 0.4rem 0.6rem !important;
                 min-height: 2rem !important;
@@ -1449,6 +1845,57 @@ def render_duolingo_css():
         }
         
         .chat-mode-header .stButton > button {
+            font-size: 1rem !important;
+            padding: 0.7rem 1.2rem !important;
+            min-height: 2.5rem !important;
+        }
+        
+        /* Voice header tablet optimization */
+        .voice-mode-header {
+            padding: 1rem;
+            margin-bottom: 1.2rem;
+        }
+        
+        .voice-header-title {
+            font-size: 1.2rem;
+            padding: 0.6rem 0;
+        }
+        
+        .voice-mode-header .stButton > button {
+            font-size: 1rem !important;
+            padding: 0.7rem 1.2rem !important;
+            min-height: 2.5rem !important;
+        }
+        
+        /* File manager header tablet optimization */
+        .file-manager-mode-header {
+            padding: 1rem;
+            margin-bottom: 1.2rem;
+        }
+        
+        .file-manager-header-title {
+            font-size: 1.2rem;
+            padding: 0.6rem 0;
+        }
+        
+        .file-manager-mode-header .stButton > button {
+            font-size: 1rem !important;
+            padding: 0.7rem 1.2rem !important;
+            min-height: 2.5rem !important;
+        }
+        
+        /* Generic header tablet optimization */
+        .generic-mode-header {
+            padding: 1rem;
+            margin-bottom: 1.2rem;
+        }
+        
+        .generic-header-title {
+            font-size: 1.2rem;
+            padding: 0.6rem 0;
+        }
+        
+        .generic-mode-header .stButton > button {
             font-size: 1rem !important;
             padding: 0.7rem 1.2rem !important;
             min-height: 2.5rem !important;
