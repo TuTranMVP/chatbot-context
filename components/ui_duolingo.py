@@ -727,6 +727,58 @@ def render_duolingo_css():
         border-left: 4px solid #58cc02 !important;
     }
     
+    /* Cross-browser compatible chat message text styling */
+    .stChatMessage p,
+    .stChatMessage .st-emotion-cache-9ajs8n p,
+    .stChatMessage div[data-testid="chat-message"] p,
+    .stChatMessage [class*="st-emotion-cache"] p {
+        color: white !important;
+        -webkit-text-fill-color: white !important; /* Safari/WebKit */
+        -moz-text-fill-color: white !important; /* Firefox */
+        text-fill-color: white !important; /* Standard property */
+    }
+    
+    /* Specific targeting for user messages */
+    .stChatMessage[data-testid="user-message"] p,
+    .stChatMessage[data-testid="user-message"] .st-emotion-cache-9ajs8n p,
+    .stChatMessage[data-testid="user-message"] div p {
+        color: white !important;
+        -webkit-text-fill-color: white !important;
+        -moz-text-fill-color: white !important;
+        text-fill-color: white !important;
+    }
+    
+    /* Specific targeting for assistant messages */
+    .stChatMessage[data-testid="assistant-message"] p,
+    .stChatMessage[data-testid="assistant-message"] .st-emotion-cache-9ajs8n p,
+    .stChatMessage[data-testid="assistant-message"] div p {
+        color: white !important;
+        -webkit-text-fill-color: white !important;
+        -moz-text-fill-color: white !important;
+        text-fill-color: white !important;
+    }
+    
+    /* Universal chat content text styling with high specificity */
+    .stChatMessage * p,
+    .stChatMessage div[class*="st-emotion-cache"] p,
+    .stChatMessage > div > div p,
+    .stChatMessage [class*="chat"] p {
+        color: white !important;
+        -webkit-text-fill-color: white !important;
+        -moz-text-fill-color: white !important;
+        text-fill-color: white !important;
+        opacity: 1 !important;
+    }
+    
+    /* Additional cross-browser compatibility */
+    .stChatMessage {
+        --chat-text-color: white;
+    }
+    
+    .stChatMessage p {
+        color: var(--chat-text-color, white) !important;
+    }
+    
     /* Dark theme input styling */
     .stTextInput > div > div > input {
         border-radius: 15px !important;
@@ -1766,6 +1818,18 @@ def render_duolingo_css():
             border-radius: 10px !important;
         }
         
+        /* Mobile chat text color ensuring */
+        .stChatMessage p,
+        .stChatMessage .st-emotion-cache-9ajs8n p,
+        .stChatMessage div[data-testid="chat-message"] p,
+        .stChatMessage [class*="st-emotion-cache"] p {
+            color: white !important;
+            -webkit-text-fill-color: white !important;
+            -moz-text-fill-color: white !important;
+            text-fill-color: white !important;
+            font-size: 0.9rem !important;
+        }
+        
         /* Mobile card optimization */
         .data-card-duolingo, .guide-card-duolingo {
             padding: 1rem !important;
@@ -2085,6 +2149,39 @@ def render_duolingo_css():
         background: linear-gradient(135deg, #2c2c54 0%, #40407a 100%) !important;
         color: #e0e0e0 !important;
         border: 2px solid #444 !important;
+    }
+    
+    /* Universal chat text color enforcement - Maximum compatibility */
+    /* This rule has the highest priority and should override all other text colors */
+    .stApp .stChatMessage p,
+    .stApp .stChatMessage span,
+    .stApp .stChatMessage div[class*="st-emotion-cache"] p,
+    .stApp .stChatMessage div[class*="st-emotion-cache"] span,
+    .stApp div[data-testid="stChatMessage"] p,
+    .stApp div[data-testid="stChatMessage"] span {
+        color: white !important;
+        -webkit-text-fill-color: white !important;
+        -moz-text-fill-color: white !important;
+        text-fill-color: white !important;
+    }
+    
+    /* Force white text for all chat-related content regardless of Streamlit's dynamic classes */
+    [data-testid="stChatMessage"] *,
+    [data-testid="user-message"] *,
+    [data-testid="assistant-message"] * {
+        color: white !important;
+    }
+    
+    /* CSS variables for consistent theming across browsers */
+    :root {
+        --streamlit-chat-text-color: white;
+        --streamlit-user-message-text: white;
+        --streamlit-assistant-message-text: white;
+    }
+    
+    /* Apply variables with fallback */
+    .stChatMessage * {
+        color: var(--streamlit-chat-text-color, white) !important;
     }
     
     </style>
