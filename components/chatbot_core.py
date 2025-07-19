@@ -756,12 +756,6 @@ class MayaChatbot:
             # If no response content, provide a meaningful message
             if not fallback_response:
                 fallback_response = self._get_default_error_message()
-            else:
-                # Check if the response contains error indicators and rephrase if needed
-                error_indicators = ['error', 'failed', 'exception', 'traceback', 'unable to', 'could not']
-                if any(indicator in fallback_response.lower() for indicator in error_indicators):
-                    fallback_response = self._rephrase_error_message(fallback_response)
-
             # Add assistant response to voice conversation history
             self.voice_messages.append(
                 {'role': 'assistant', 'content': fallback_response}
