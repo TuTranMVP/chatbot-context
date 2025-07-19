@@ -345,7 +345,7 @@ def main():
             """
             <div style="text-align: center; padding: 2rem 0; margin-top: 3rem; border-top: 1px solid #e0e0e0;">
                 <p style="color: #666; margin: 0; font-size: 0.9rem;">
-                    Made with ❤️ by TuTT42 Teams • Always learning, always helping
+                    Made with ❤️ by MayA Teams
                 </p>
             </div>
             """,
