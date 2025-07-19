@@ -693,11 +693,17 @@ class MayaChatbot:
 
                     return readable_response, structured_response
 
-            # Fallback to regular response
-            fallback_response = (
-                response.choices[0].message.content
-                or "I couldn't process your request properly."
-            )
+            # Fallback to regular response with user-friendly error handling
+            fallback_response = response.choices[0].message.content
+            
+            # If no response content, provide a meaningful message
+            if not fallback_response:
+                fallback_response = self._get_default_error_message()
+            else:
+                # Check if the response contains error indicators and rephrase if needed
+                error_indicators = ['error', 'failed', 'exception', 'traceback', 'unable to', 'could not']
+                if any(indicator in fallback_response.lower() for indicator in error_indicators):
+                    fallback_response = self._rephrase_error_message(fallback_response)
 
             # Add assistant response to conversation history
             self.messages.append(
@@ -707,7 +713,9 @@ class MayaChatbot:
             return fallback_response, None
 
         except Exception as e:
-            error_msg = f'Sorry, I encountered an error: {str(e)}'
+            # Rephrase the technical error into a user-friendly message
+            technical_error = f'Sorry, I encountered an error: {str(e)}'
+            error_msg = self._rephrase_error_message(technical_error)
             # Add error to conversation history
             self.messages.append({'role': 'assistant', 'content': error_msg})
             return error_msg, None
@@ -751,11 +759,17 @@ class MayaChatbot:
 
                     return readable_response, structured_response
 
-            # Fallback to regular response
-            fallback_response = (
-                response.choices[0].message.content
-                or "I couldn't process your request properly."
-            )
+            # Fallback to regular response with user-friendly error handling
+            fallback_response = response.choices[0].message.content
+            
+            # If no response content, provide a meaningful message
+            if not fallback_response:
+                fallback_response = self._get_default_error_message()
+            else:
+                # Check if the response contains error indicators and rephrase if needed
+                error_indicators = ['error', 'failed', 'exception', 'traceback', 'unable to', 'could not']
+                if any(indicator in fallback_response.lower() for indicator in error_indicators):
+                    fallback_response = self._rephrase_error_message(fallback_response)
 
             # Add assistant response to voice conversation history
             self.voice_messages.append(
@@ -765,7 +779,9 @@ class MayaChatbot:
             return fallback_response, None
 
         except Exception as e:
-            error_msg = f'Sorry, I encountered an error: {str(e)}'
+            # Rephrase the technical error into a user-friendly message
+            technical_error = f'Sorry, I encountered an error: {str(e)}'
+            error_msg = self._rephrase_error_message(technical_error)
             # Add error to voice conversation history
             self.voice_messages.append(
                 {'role': 'assistant', 'content': error_msg}
@@ -964,3 +980,41 @@ class MayaChatbot:
             except Exception as fallback_error:
                 print(f"Critical error: Could not create fallback vector store: {fallback_error}")
                 self.vectorstore = None
+
+    def _rephrase_error_message(self, error_message: str) -> str:
+        """Rephrase technical error messages into user-friendly messages using AI"""
+        try:
+            rephrase_prompt = f"""
+            You are Maya, a helpful company policy assistant. Rephrase the following technical error message into a friendly, user-friendly message that:
+            1. Apologizes for the inconvenience
+            2. Explains what happened in simple terms
+            3. Suggests what the user can do next
+            4. Maintains a professional but warm tone
+            5. Keeps it focused on company policy assistance
+
+            Technical error: "{error_message}"
+
+            Provide only the rephrased message, nothing else.
+            """
+            
+            response = self.client.chat.completions.create(
+                model='GPT-4o-mini',
+                messages=[{'role': 'user', 'content': rephrase_prompt}],
+                max_tokens=200,
+                temperature=0.3,
+            )
+            
+            rephrased = response.choices[0].message.content.strip()
+            return rephrased if rephrased else self._get_default_error_message()
+            
+        except Exception:
+            # If rephrasing fails, return a default friendly message
+            return self._get_default_error_message()
+    
+    def _get_default_error_message(self) -> str:
+        """Get a default user-friendly error message"""
+        return """I apologize, but I'm having some trouble processing your request right now. 
+
+As your company policy assistant, I'm here to help you with questions about policies, procedures, and guidelines. 
+
+Could you please try rephrasing your question, or let me know what specific policy topic you'd like assistance with? I'm ready to help!"""
