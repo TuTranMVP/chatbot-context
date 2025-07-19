@@ -20,6 +20,8 @@ try:
         display_duolingo_guide,
         render_duolingo_chat_mode,
         render_duolingo_css,
+        render_duolingo_file_manager_mode,
+        render_duolingo_generic_mode,
         render_duolingo_landing,
         render_duolingo_voice_mode,
         render_quick_suggestions,
@@ -151,23 +153,6 @@ def main():
                     st.rerun()
 
     elif st.session_state.current_mode == 'chat':
-        # Top navigation with back to landing
-        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
-        with col1:
-            if st.button('🏠 Home', key='home_from_chat'):
-                st.session_state.current_mode = 'landing'
-                st.rerun()
-        with col2:
-            st.markdown('<h2 style="text-align: center; margin: 0;">💬 Chat Mode</h2>', unsafe_allow_html=True)
-        with col3:
-            if st.button('📁 Files', key='to_files_from_chat'):
-                st.session_state.current_mode = 'files'
-                st.rerun()
-        with col4:
-            if st.button('🎤 Voice', key='to_voice_from_chat'):
-                st.session_state.current_mode = 'voice'
-                st.rerun()
-        
         render_duolingo_chat_mode()
         
         # Handle user input
@@ -196,35 +181,6 @@ def main():
             st.session_state.voice_mode_active = True
             if st.session_state.voice_interface.start_continuous_recording():
                 st.session_state.is_recording = True
-
-        # Top navigation with back to landing
-        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
-        with col1:
-            if st.button('🏠 Home', key='home_from_voice'):
-                st.session_state.current_mode = 'landing'
-                if st.session_state.get('voice_mode_active', False):
-                    st.session_state.voice_mode_active = False
-                    st.session_state.voice_interface.stop_recording()
-                    st.session_state.is_recording = False
-                st.rerun()
-        with col2:
-            st.markdown('<h2 style="text-align: center; margin: 0;">🎤 Voice Mode</h2>', unsafe_allow_html=True)
-        with col3:
-            if st.button('📁 Files', key='to_files_from_voice'):
-                st.session_state.current_mode = 'files'
-                if st.session_state.get('voice_mode_active', False):
-                    st.session_state.voice_mode_active = False
-                    st.session_state.voice_interface.stop_recording()
-                    st.session_state.is_recording = False
-                st.rerun()
-        with col4:
-            if st.button('💬 Chat', key='to_chat_from_voice'):
-                st.session_state.current_mode = 'chat'
-                if st.session_state.get('voice_mode_active', False):
-                    st.session_state.voice_mode_active = False
-                    st.session_state.voice_interface.stop_recording()
-                    st.session_state.is_recording = False
-                st.rerun()
 
         render_duolingo_voice_mode()
 
@@ -255,22 +211,7 @@ def main():
                     st.rerun()
 
     elif st.session_state.current_mode == 'data':
-        # Top navigation with back to landing
-        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
-        with col1:
-            if st.button('🏠 Home', key='home_from_data'):
-                st.session_state.current_mode = 'landing'
-                st.rerun()
-        with col2:
-            st.markdown('<h2 style="text-align: center; margin: 0;">📊 Data Generation</h2>', unsafe_allow_html=True)
-        with col3:
-            if st.button('📁 Files', key='to_files_from_data'):
-                st.session_state.current_mode = 'files'
-                st.rerun()
-        with col4:
-            if st.button('💬 Chat', key='to_chat_from_data'):
-                st.session_state.current_mode = 'chat'
-                st.rerun()
+        render_duolingo_generic_mode('Data Generation', '�')
         
         # Display sample data
         sample_data = {
@@ -286,22 +227,7 @@ def main():
         display_duolingo_data(sample_data)
 
     elif st.session_state.current_mode == 'guides':
-        # Top navigation with back to landing
-        col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
-        with col1:
-            if st.button('🏠 Home', key='home_from_guides'):
-                st.session_state.current_mode = 'landing'
-                st.rerun()
-        with col2:
-            st.markdown('<h2 style="text-align: center; margin: 0;">📚 Guides</h2>', unsafe_allow_html=True)
-        with col3:
-            if st.button('📁 Files', key='to_files_from_guides'):
-                st.session_state.current_mode = 'files'
-                st.rerun()
-        with col4:
-            if st.button('💬 Chat', key='to_chat_from_guides'):
-                st.session_state.current_mode = 'chat'
-                st.rerun()
+        render_duolingo_generic_mode('Guides', '📚')
         
         # Display sample guide
         sample_guide = {
@@ -320,18 +246,7 @@ def main():
         display_duolingo_guide(sample_guide)
 
     elif st.session_state.current_mode == 'files':
-        # Top navigation with back to landing
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col1:
-            if st.button('🏠 Home', key='home_from_files'):
-                st.session_state.current_mode = 'landing'
-                st.rerun()
-        with col2:
-            st.markdown('<h2 style="text-align: center; margin: 0;">📁 File Manager</h2>', unsafe_allow_html=True)
-        with col3:
-            if st.button('💬 Chat', key='to_chat_from_files'):
-                st.session_state.current_mode = 'chat'
-                st.rerun()
+        render_duolingo_file_manager_mode()
         
         # Render file manager interface
         render_file_manager()
@@ -359,7 +274,7 @@ def main():
             """
             <div style="text-align: center; padding: 2rem 0; margin-top: 3rem; border-top: 1px solid #e0e0e0;">
                 <p style="color: #666; margin: 0; font-size: 0.9rem;">
-                    Made with ❤️ by TuTT42 Teams • Always learning, always helping
+                    Made with ❤️ by MayA Teams
                 </p>
             </div>
             """,

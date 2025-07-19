@@ -46,13 +46,14 @@ class VoiceInterface:
         """Initialize the Hugging Face TTS model and tokenizer"""
         try:
             print('Loading TTS model...')
-            self.tts_model = VitsModel.from_pretrained('./mms-tts-eng-local')
-            self.tts_tokenizer = AutoTokenizer.from_pretrained(
-                './mms-tts-eng-local'
-            )
+            # Use a working HuggingFace TTS model instead of local path
+            model_name = "facebook/mms-tts-eng"  # Official Facebook MMS English TTS model
+            self.tts_model = VitsModel.from_pretrained(model_name)
+            self.tts_tokenizer = AutoTokenizer.from_pretrained(model_name)
             print('TTS model loaded successfully!')
         except Exception as e:
             print(f'Failed to load TTS model: {e}')
+            print('TTS will be disabled. Voice mode will work for recording only.')
             self.tts_model = None
             self.tts_tokenizer = None
 
