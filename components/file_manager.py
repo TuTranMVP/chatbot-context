@@ -157,8 +157,66 @@ class FileManager:
                 continue
                 
         return filtered_files
-
-
+    
+    def save_uploaded_file_replace(self, uploaded_file, existing_file_info) -> Dict:
+        """Save uploaded file replacing existing one using remove_and_add_file"""
+        try:
+            # Generate unique filename (reuse existing hash if possible)
+            file_hash = existing_file_info.get("id", hashlib.md5(uploaded_file.getvalue()).hexdigest()[:8])
+            file_extension = os.path.splitext(uploaded_file.name)[1]
+            unique_filename = f"{file_hash}_{uploaded_file.name}"
+            file_path = os.path.join(self.upload_dir, unique_filename)
+            
+            # Save file
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getvalue())
+            
+            # Process and store file in ChromaDB using remove_and_add_file
+            vector_chunk_ids = None
+            vector_processing_success = False
+            
+            if self.vector_processing_enabled and self.vector_processor:
+                try:
+                    # Check if file type is supported by vector processor
+                    if file_extension.lower() in ['.pdf', '.txt', '.md', '.markdown']:
+                        # Use remove_and_add_file to replace existing vector entries
+                        vector_chunk_ids = self.vector_processor.remove_and_add_file(
+                            file_path=file_path,
+                            use_chunking=True
+                        )
+                        vector_processing_success = vector_chunk_ids is not None
+                        
+                        if vector_processing_success:
+                            st.success(f"✅ File replaced and updated in vector database: {len(vector_chunk_ids)} chunks") # type: ignore
+                        else:
+                            st.warning("⚠️ File replaced but vector processing failed")
+                    else:
+                        st.info(f"ℹ️ File type {file_extension} not supported for vector processing")
+                        
+                except Exception as e:
+                    st.warning(f"⚠️ Vector processing failed during replacement: {str(e)}")
+                    vector_processing_success = False
+                
+            # Create file info
+            file_info = {
+                "id": file_hash,
+                "name": uploaded_file.name,
+                "filename": unique_filename,
+                "path": file_path,
+                "size": uploaded_file.size,
+                "type": uploaded_file.type,
+                "extension": file_extension,
+                "upload_time": datetime.now().isoformat(),
+                "content_preview": self.get_file_preview(file_path, file_extension)
+            }
+            
+            return file_info
+            
+        except Exception as e:
+            st.error(f"Error replacing file: {str(e)}")
+            return None # type: ignore
+    
+    # ...existing code...
 def render_file_manager():
     """Render file manager UI"""
     st.markdown(
@@ -200,7 +258,21 @@ def render_file_manager():
                         st.session_state.uploaded_files.append(file_info)
                         st.success(f"✅ Uploaded: {uploaded_file.name}")
                 else:
-                    st.warning(f"⚠️ File already exists: {uploaded_file.name}")
+                    # File already exists - use remove_and_add_file to replace it
+                    st.info(f"🔄 File already exists. Replacing: {uploaded_file.name}")
+                    
+                    # Remove the existing file from the list first
+                    st.session_state.uploaded_files.remove(existing_file)
+                    
+                    # Delete the existing physical file
+                    if os.path.exists(existing_file["path"]):
+                        os.remove(existing_file["path"])
+                    
+                    # Save the new file with remove_and_add_file logic
+                    file_info = st.session_state.file_manager.save_uploaded_file_replace(uploaded_file, existing_file)
+                    if file_info:
+                        st.session_state.uploaded_files.append(file_info)
+                        st.success(f"✅ Replaced: {uploaded_file.name}")
     
     # Search and filter section
     if st.session_state.uploaded_files:
