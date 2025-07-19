@@ -5,7 +5,8 @@ This package contains modular components for the Maya chatbot:
 - chatbot_core.py: Core chatbot logic and OpenAI integration
 - voice_interface.py: Speech-to-text functionality
 - tts_interface.py: Text-to-speech functionality
-- ui_components.py: UI rendering components
+- ui_duolingo.py: Duolingo-inspired UI rendering components
+- file_manager.py: File management functionality
 
 Quick Setup:
 1. Install dependencies: pip install -r requirements.txt
@@ -27,25 +28,34 @@ __version__ = '1.0.0'
 try:
     from .chatbot_core import MayaChatbot
     from .tts_interface import TTSInterface
-    from .ui_components import (
-        render_custom_css,
-        render_mode_selector,
-        render_sidebar_info,
-        render_text_mode_ui,
-        render_voice_mode_ui,
+    from .ui_duolingo import (
+        render_duolingo_css,
+        render_duolingo_landing,
+        render_duolingo_chat_mode,
+        render_duolingo_voice_mode,
+        render_duolingo_file_manager_mode,
+        render_duolingo_generic_mode,
+        display_duolingo_data,
+        display_duolingo_guide,
     )
     from .voice_interface import VoiceInterface, check_microphone_permission
+    from .file_manager import render_file_manager, render_file_manager_css
 
     __all__ = [
         'MayaChatbot',
         'VoiceInterface',
         'check_microphone_permission',
         'TTSInterface',
-        'render_text_mode_ui',
-        'render_voice_mode_ui',
-        'render_mode_selector',
-        'render_sidebar_info',
-        'render_custom_css',
+        'render_duolingo_css',
+        'render_duolingo_landing',
+        'render_duolingo_chat_mode',
+        'render_duolingo_voice_mode',
+        'render_duolingo_file_manager_mode',
+        'render_duolingo_generic_mode',
+        'display_duolingo_data',
+        'display_duolingo_guide',
+        'render_file_manager',
+        'render_file_manager_css',
     ]
 
 except ImportError as e:
